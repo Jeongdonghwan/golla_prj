@@ -1,0 +1,14 @@
+{# 상품 카드: '광고' 표시 · 상품명 · 스토어 · 이 페이지 조건과 맞는 이유(상품명 태그). 가격·평점 숫자와 상품 이미지는 쓰지 않는다.
+   링크는 /go/<id> 경유 + rel="sponsored nofollow noopener" target=_blank — 상품이 바뀌어도 이 틀과 본문은 그대로. #}
+<ul class="offers">
+{% for o in offers %}
+  <li>
+    <p class="ad">광고</p>
+    <h3>{{ o.name }}</h3>
+    <p class="store">{{ o.advertiser }}</p>
+    {% if o.reason %}<p class="why">이 조건과 맞는 점: {{ o.reason }}</p>{% endif %}
+    <p class="go"><a class="btn" href="/go/{{ o.id }}?p={{ combo.id }}&amp;s={{ slot }}" rel="sponsored nofollow noopener" target="_blank">{{ loop.cycle("오늘 가격 보기", "할인가 확인하기") }}</a></p>
+  </li>
+{% endfor %}
+</ul>
+<p class="fine">가격·할인·재고는 판매처에서 확인하세요.</p>

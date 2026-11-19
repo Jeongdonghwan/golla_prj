@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="wrap prose">
+<h1>{{ settings.home_h1 or (site.group_name ~ " 가전, 종류별로 고르는 기준") }}</h1>
+<p class="lead">{{ settings.home_lead or (site.group_name ~ " 가전을 종류별로 나눠 고르는 기준, 방식 차이, 쓰는 공간에 따라 달라지는 점과 관리법을 정리했습니다.") }}</p>
+<p class="note">이 사이트에는 네이버 쇼핑 제휴 링크가 있으며, 구매 시 수수료를 받을 수 있습니다. <a href="/광고고지/">광고 고지</a></p>
+{% if hubs %}<ul class="links">{% for h in hubs %}<li><a href="{{ h.url_path }}">{{ h.primary_keyword }}</a></li>{% endfor %}</ul>{% endif %}
+{% if kinds %}<h2>종류별 안내</h2>
+<ul class="links">{% for k in kinds %}<li><a href="{{ k.url_path }}">{{ k.primary_keyword }}</a></li>{% endfor %}</ul>{% endif %}
+<h2>다른 상품군</h2>
+<ul class="links">{% for s in nav_sites if s.id != site.id %}<li><a href="https://{{ s.host }}/">{{ s.group_name }}</a></li>{% endfor %}</ul>
+</div>
+{% endblock %}

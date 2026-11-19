@@ -1,0 +1,175 @@
+"""상품 선택, 콘텐츠 조립, 품질 게이트."""
+import hashlib
+import json
+import random
+import re
+from pathlib import Path
+from urllib.parse import quote
+
+from flask import current_app, g, render_template
+
+import composer
+import products
+from db import js, ops, queries as dbq
+
+STATIC_PATHS = ["/운영사/", "/광고고지/", "/편집기준/", "/개인정보처리방침/", "/이용약관/", "/면책조항/"]
+CARD_COUNT_HUB, CARD_COUNT = 8, 6     # 상품 카드 수: 허브 8, 키워드·질문 글 6
+UNIQUENESS_MAX = 0.30
+FORBIDDEN = [w for w in (Path(__file__).parent / "lint" / "forbidden.txt").read_text("utf-8").split("\n") if w.strip()]
+# 가격·평점·리뷰 수를 숫자로 쓰지 않는다(가격대 수식어 '3만 원 이하'·'2만 원대'는 허용)
+NUMBER_RE = re.compile(r"\d{1,3}(?:,\d{3})+\s*원|\d+\s*원(?!대| 이하| 이상| 안팎)|평점\s*\d|별점\s*\d|리뷰\s*[\d,]+\s*(?:개|건)|\d+\s*% 할인|할인율\s*\d")
+HUB_TYPES = ("group_hub", "kind_hub")
+
+
+def lint_text(text, extra=()):
+    """금지 표현 목록에 걸린 단어들. 빈 리스트면 통과."""
+    return [w for w in dict.fromkeys([*FORBIDDEN, *extra]) if w in (text or "")]
+
+
+def lint(text):
+    """린트 결과(page_contents.lint_result 에 저장되는 형태)."""
+    forbidden, numbers = lint_text(text), NUMBER_RE.findall(text or "")
+    return {"ok": not forbidden and not numbers, "forbidden": forbidden, "numbers": numbers}
+
+
+def site_base():
+    """현재 요청의 사이트 기준 주소. web.site() / jobs._sites() 가 g.base_url 을 채운다."""
+    return g.get("base_url") or current_app.config["BASE_URL"]
+
+
+def abs_url(path):
+    return site_base() + quote(path)
+
+
+# ── 상품 선택 ─────────────────────────────────────────────────────────────
+def combo_tags(combo):
+    """페이지 수식어 중 상품 태그와 이어진 것(특징·가격대·브랜드)."""
+    ids = [combo.get(k) for k in ("mod1_id", "mod2_id", "mod3_id") if combo.get(k)]
+    return [t["tag"] for t in map(dbq.term, ids) if t and t["tag"]]
+
+
+def select_offers(site, combo, slot, n, vertical=None):
+    """(1) 같은 종류(+하위) (2) 페이지 특징 태그와 맞는 상품 먼저 (3) 점수 가중 셔플(페이지 시드) (4) 모자라면 같은 상품군 형제 종류로 채움."""
+    vertical = vertical or dbq.vertical(combo["vertical_id"])
+    tags = set(combo_tags(combo))
+    rng = random.Random(hashlib.sha256(f"{site['id']}|{combo['id']}|{slot}|{site['ranking_version']}".encode()).hexdigest())
+
+    def ranked(cands):  # 가중 셔플(Efraimidis-Spirakis). cands 가 id 순이라 결정적
+        top = max((float(o["score"]) for o in cands), default=0) or 1.0
+        return sorted(cands, key=lambda o: rng.random() ** (1.0 / max(float(o["score"]) / top * (o["manual_weight"] or 1), 0.01)), reverse=True)
+
+    if combo["page_type"] == "group_hub":  # 상품군 허브: 종류마다 점수 1위 상품
+        tops = [max(c, key=lambda o: float(o["score"])) for v in dbq.verticals(site["id"]) if not v["parent_id"] for c in [products.kind_offers(v)] if c]
+        return ranked(tops)[:n]
+    cands = products.kind_offers(vertical)
+    match = [o for o in cands if tags and tags <= set(js(o["tags"], []))]
+    seen = {o["id"] for o in match}
+    out = ranked(match) + ranked([o for o in cands if o["id"] not in seen])
+    if len(out) < n:  # 모자라면 같은 상품군의 형제 종류(같은 부모)로 채운다 — 빈 페이지 없음
+        root = vertical["parent_id"] or vertical["id"]
+        sib = [v for v in dbq.verticals(site["id"]) if v["id"] != vertical["id"] and (v["parent_id"] or v["id"]) == root and not v["parent_id"]]
+        have = {o["id"] for o in out}
+        out += ranked([o for v in sib for o in products.kind_offers(v) if o["id"] not in have])
+    return out[:n]
+
+
+def offer_reason(offer, combo):
+    """상품 카드의 '이 페이지 조건과 맞는 이유' — 상품명에서 뽑은 태그 중 페이지 태그와 겹치는 것."""
+    hit = [t for t in combo_tags(combo) if t in js(offer["tags"], [])]
+    return " · ".join(hit)
+
+
+# ── 조립 ──────────────────────────────────────────────────────────────────
+def _crumbs(combo):
+    chain, cur = [], combo
+    while cur:
+        chain.append({"name": cur["primary_keyword"], "path": cur["url_path"]})
+        cur = dbq.combo(cur["parent_combo_id"]) if cur["parent_combo_id"] else None
+    chain.append({"name": "홈", "path": "/"})
+    return [{**c, "url": abs_url(c["path"])} for c in reversed(chain) if c["path"]]
+
+
+def _links(combo):
+    links = {"parent": [], "children": dbq.children(combo["id"]),
+             "siblings": dbq.siblings(combo) if combo["parent_combo_id"] else [],
+             "core": dbq.kind_core(combo) if combo["page_type"] != "group_hub" else []}
+    parent = dbq.combo(combo["parent_combo_id"]) if combo["parent_combo_id"] else None
+    if parent and parent["url_path"]:
+        links["parent"] = [parent]
+    targets = [l for group in links.values() for l in group]
+    variants = ops.anchor_variants([l["id"] for l in targets])
+    for l in targets:  # 앵커 변형: 출발 페이지마다 다른 앵커를 결정적으로
+        opts = variants.get(l["id"])
+        l["anchor"] = opts[int(hashlib.md5(f"{combo['id']}|{l['id']}".encode()).hexdigest(), 16) % len(opts)] if opts else l["primary_keyword"]
+    return links
+
+
+def assemble(site, combo):
+    """렌더에 필요한 모든 것. 승인된 콘텐츠가 없으면 None."""
+    content = dbq.content(combo["id"], combo["content_version"])
+    if not content:
+        return None
+    vertical = dbq.vertical(combo["vertical_id"])
+    built = composer.compose(combo, vertical, site, (js(content["blocks"], {}) or {}).get("v", 0) if content["model"] == "assembled" else 0)
+    if not built:
+        return None
+    page = dbq.page(combo["id"])
+    n = CARD_COUNT_HUB if combo["page_type"] in HUB_TYPES else CARD_COUNT
+    offers = select_offers(site, combo, "cards", n, vertical)
+    for o in offers:
+        o["reason"] = offer_reason(o, combo)
+    kinds = [k for k in dbq.published(site["id"], ("kind_hub",))] if combo["page_type"] == "group_hub" else []
+    ctx = {"combo": combo, "content": content, "page": built, "blocks": built["sections"], "vertical": vertical, "kinds": kinds,
+           "offers_main": offers, "links": _links(combo), "crumbs": _crumbs(combo),
+           "author": ops.default_author(), "og_image": page and page["og_image_path"], "faqs": built["faqs"],
+           "canonical": abs_url(combo["url_path"]), "title": built["title"], "description": built["meta"]}
+    ctx["robots"] = "noindex,follow" if combo["status"] == "noindex" or not offers else None
+    return ctx
+
+
+def render_combo(site, combo):
+    cached = dbq.page(combo["id"])
+    ctx = assemble(site, combo)
+    if ctx is None:
+        return None
+    html = render_template(f"pages/{combo['page_type']}.html", **ctx)
+    # 상품 순서는 해시에 넣지 않는다 — 상품 교체로 lastmod 가 흔들리지 않게(본문이 바뀔 때만 갱신)
+    content_hash = hashlib.md5(json.dumps([ctx["page"], ctx["faqs"]], ensure_ascii=False).encode()).hexdigest()
+    noindex = int(ctx["robots"] is not None)
+    if cached and cached["content_hash"] == content_hash and cached["noindex"] == noindex:
+        return html
+    dbq.upsert_page(combo["id"], site["cache_version"], site["ranking_version"], content_hash, 1 - noindex, noindex)
+    if not cached or not cached["content_hash"]:
+        dbq.touch_combo(combo["id"], only_if_null=True)
+    elif cached["content_hash"] != content_hash:
+        dbq.touch_combo(combo["id"])
+        dbq.queue_indexnow(site["id"], ctx["canonical"], "update")
+    return html
+
+
+def shown_offers(site, combo):
+    """노출 집계용: 이 콤보에 지금 표시되는 (slot, offer_id)."""
+    n = CARD_COUNT_HUB if combo["page_type"] in HUB_TYPES else CARD_COUNT
+    return [("cards", o["id"]) for o in select_offers(site, combo, "cards", n)]
+
+
+# ── 품질 게이트 ───────────────────────────────────────────────────────────
+def gate(site, combo):
+    """publish 전 검사. 실패 사유 리스트(빈 리스트 = 통과). 우회 경로를 만들지 말 것."""
+    ctx = assemble(site, combo)
+    if ctx is None:
+        return ["승인된 콘텐츠 없음"]
+    fails, c = [], ctx["content"]
+    if c["uniqueness_score"] is None:
+        fails.append("uniqueness 미계산")
+    elif float(c["uniqueness_score"]) > UNIQUENESS_MAX:
+        fails.append(f"uniqueness {float(c['uniqueness_score']):.2f} > {UNIQUENESS_MAX}")
+    lint_result = js(c["lint_result"])
+    if not lint_result or not lint_result.get("ok"):
+        fails.append("lint 미통과" if lint_result else "lint 미실행")
+    if not ctx["offers_main"]:
+        fails.append("상품 슬롯 0")
+    urls = {x["path"] for x in ctx["crumbs"][:-1]} | {x["url_path"] for group in ctx["links"].values() for x in group} | {k["url_path"] for k in ctx["kinds"]}
+    if len(urls) < 5:
+        fails.append(f"내부 링크 {len(urls)}개")
+    return fails

@@ -1,0 +1,3 @@
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "ItemList", "itemListElement": [
+{%- for l in related %}{"@type": "ListItem", "position": {{ loop.index }}, "name": {{ (l.anchor or l.primary_keyword)|tojson }}, "url": {{ (base_url ~ l.url_path|urlencode)|tojson }}{% if l.vertical_id %}, "image": {{ (base_url ~ "/static/og/v" ~ l.vertical_id ~ ".webp")|tojson }}{% endif %}}{% if not loop.last %},{% endif %}{% endfor -%}
+]}</script>

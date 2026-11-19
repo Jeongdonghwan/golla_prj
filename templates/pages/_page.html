@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{# 순서(기획 F5): 제목 → 고지 한 줄 → 바로 답 → 핵심 요약 → 목차 → 본문(기준 표 · 상품 카드 · 수식어 · 비교 · 관리) → 질문 → 관련 페이지 → 아래 고지 #}
+{% block jsonld %}
+{% include "partials/jsonld/breadcrumb.html" %}
+{% if faqs %}{% include "partials/jsonld/faqpage.html" %}{% endif %}
+{% if combo.page_type == "question" %}{% include "partials/jsonld/article.html" %}{% endif %}
+{% set related = (links.children + links.siblings + links.core)[:20] %}
+{% if related %}{% include "partials/jsonld/itemlist.html" %}{% endif %}
+{% endblock %}
+{% block main %}
+<article class="wrap post">
+<nav class="crumbs" aria-label="경로"><ol>{% for c in crumbs %}<li>{% if not loop.last %}<a href="{{ c.path }}">{{ c.name }}</a>{% else %}<span aria-current="page">{{ c.name }}</span>{% endif %}</li>{% endfor %}</ol></nav>
+<h1>{{ page.h1 }}</h1>
+<div class="disclose">이 글에는 네이버 쇼핑 제휴 링크가 있으며, 구매 시 수수료를 받을 수 있습니다.</div>
+{% if combo.content_updated_at %}<div class="meta">{{ author.name if author }} · {{ combo.content_updated_at.strftime("%Y-%m-%d") }} 수정</div>{% endif %}
+
+<div class="answer">{% for a in page.answer %}<p>{{ a }}</p>{% endfor %}</div>
+{% if page.points %}<div class="points"><p class="label">핵심 요약</p><ul>{% for p in page.points %}<li>{{ p }}</li>{% endfor %}</ul></div>{% endif %}
+
+{% set heads = page.sections | selectattr("h2") | list %}
+{% if heads|length >= 3 %}<nav class="toc" aria-label="목차"><p class="label">목차</p><ol>{% for s in heads %}<li><a href="#{{ s.id }}">{{ s.h2 }}</a></li>{% endfor %}{% if faqs %}<li><a href="#faq">자주 묻는 질문</a></li>{% endif %}</ol></nav>{% endif %}
+
+{% for s in page.sections %}
+<section id="{{ s.id }}">
+  <h2>{{ s.h2 }}</h2>
+  {% if s.type == "p" %}{% for t in s["items"] if t %}<p>{{ t }}</p>{% endfor %}
+  {% elif s.type == "terms" %}{% for t in s["items"] %}<h3>{{ t.term }}</h3><p>{{ t.text }}</p>{% endfor %}
+  {% elif s.type == "list" %}<ul class="plain">{% for t in s["items"] %}<li>{{ t }}</li>{% endfor %}</ul>
+  {% elif s.type == "table" %}<div class="tbl"><table><thead><tr>{% for h in s.head %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for r in s.rows %}<tr><th scope="row">{{ r[0] }}</th><td>{{ r[1] }}</td><td>{{ r[2] }}</td></tr>{% endfor %}</tbody></table></div>
+  {% elif s.type == "methods" %}<dl class="methods">{% for m in s["items"] %}<div><dt>{{ m.name }}</dt><dd><b>장점</b> {{ m.pros }}</dd><dd><b>단점</b> {{ m.cons }}</dd><dd><b>맞는 경우</b> {{ m.fit }}</dd></div>{% endfor %}</dl>
+  {% elif s.type == "kinds" %}<ul class="links">{% for k in kinds %}<li><a href="{{ k.url_path }}">{{ k.primary_keyword }}</a></li>{% endfor %}</ul>
+  {% elif s.type == "offers" %}{% set offers = offers_main %}{% set slot = "cards" %}{% include "partials/offer_cards.html" %}
+  {% endif %}
+</section>
+{% endfor %}
+
+{% if faqs %}<section id="faq"><h2>자주 묻는 질문</h2>
+{% for f in faqs %}<details><summary>{{ f.question }}</summary><p>{{ f.answer }}</p></details>{% endfor %}</section>{% endif %}
+
+{% set seen = namespace(urls=[combo.url_path] + (kinds | map(attribute="url_path") | list)) %}
+{% for group, label in [("children", "세부 안내"), ("core", vertical.name ~ " 핵심 안내"), ("siblings", "비슷한 조건"), ("parent", "상위 안내")] %}
+{% set items = [] %}{% for l in links[group] if l.url_path not in seen.urls %}{% set _ = items.append(l) %}{% set seen.urls = seen.urls + [l.url_path] %}{% endfor %}
+{% if items %}<section class="related"><h2>{{ label }}</h2><ul class="links">{% for l in items %}<li><a href="{{ l.url_path }}">{{ l.anchor or l.primary_keyword }}</a></li>{% endfor %}</ul></section>{% endif %}
+{% endfor %}
+
+<div class="disclose foot-note">상품 링크는 네이버 쇼핑 제휴 링크(광고)입니다. 가격·할인·재고·배송은 판매처에서 확인하세요. <a href="/광고고지/">광고 고지</a> · <a href="/편집기준/">편집 기준</a></div>
+</article>
+{% endblock %}

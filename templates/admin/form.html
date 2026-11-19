@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+{% block body %}
+<h1>{{ t.label }} {{ "수정 #%d"|format(row_id) if row_id else "등록" }}</h1>
+{% for e in errors %}<p class="err">{{ e }}</p>{% endfor %}
+<form method="post" class="wide">
+<input type="hidden" name="csrf" value="{{ session.csrf }}">
+{% for c in t.cols %}
+<label for="f-{{ c }}">{{ c }}{% if c in t.json %} (JSON){% endif %}</label>
+{% if c in t.json or c in ("bio",) %}<textarea id="f-{{ c }}" name="{{ c }}">{{ row[c] if row[c] is not none }}</textarea>
+{% else %}<input id="f-{{ c }}" name="{{ c }}" value="{{ row[c] if row[c] is not none }}">{% endif %}
+{% endfor %}
+{% if table == "offers" %}<p>링크만 바꾸려면 url 만 고치세요. 종류(vertical_id)를 고치면 CSV 를 다시 올려도 그 분류가 유지됩니다. status=inactive 면 어떤 페이지에도 나오지 않습니다.</p>{% endif %}
+<p><button>저장</button> <a href="{{ url_for('admin.rows', table=table) }}">취소</a></p>
+</form>
+{% endblock %}

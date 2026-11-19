@@ -1,0 +1,12 @@
+*.log
+.devdb/
+.env
+.venv/
+__pycache__/
+content/done/
+export/
+keywords/pool_*.csv
+reports/
+static/og/
+content/classify/pending.json
+content/cards/_input/

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="wrap prose">
+<h1>{{ h1 }}</h1>
+<h2>사업자 정보</h2>
+<table>
+<tr><th>상호</th><td>{{ settings.op_name }}</td></tr>
+<tr><th>대표</th><td>{{ settings.op_ceo }}</td></tr>
+<tr><th>사업자등록번호</th><td>{{ settings.op_bizno }}</td></tr>
+<tr><th>주소</th><td>{{ settings.op_address }}</td></tr>
+<tr><th>이메일</th><td>{{ settings.op_email }}</td></tr>
+</table>
+<h2>운영 범위</h2>
+<p>{{ site.name }}은(는) 위 운영사가 운영하는 정보 사이트입니다. 상품을 직접 팔거나 배송하지 않으며, 구매는 네이버 쇼핑 판매처에서 이루어집니다.</p>
+</div>
+{% endblock %}

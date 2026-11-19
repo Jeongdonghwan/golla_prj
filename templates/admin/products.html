@@ -1,0 +1,21 @@
+{% extends "admin/base.html" %}
+{% block body %}
+<h1>상품 CSV 교체</h1>
+<p>네이버 쇼핑 커넥트에서 내려받은 상품 목록 CSV 를 올리면 제휴 URL 로 대조합니다. 새 상품은 추가·자동 분류, 목록에서 빠진 상품은 노출 중단(inactive), 수수료·이름 변경은 반영합니다. 페이지 본문·제목·주소는 바뀌지 않습니다.</p>
+{% if error %}<p class="err">{{ error }}</p>{% endif %}
+{% if result %}
+<table><tr><th>CSV 상품</th><th>추가</th><th>제외(빠짐)</th><th>변경</th><th>미분류</th><th>읽기 오류</th></tr>
+<tr><td>{{ result.rows_total }}</td><td>{{ result.added }}</td><td>{{ result.removed }}</td><td>{{ result.changed }}</td><td>{{ result.unclassified }}</td><td>{{ result.errors|length }}</td></tr></table>
+{% for e in result.errors[:30] %}<p class="err">{{ e }}</p>{% endfor %}
+{% endif %}
+<form method="post" enctype="multipart/form-data"><input type="hidden" name="csrf" value="{{ session.csrf }}">
+<label for="file">CSV 파일(상품명, 제휴 URL)</label><input id="file" type="file" name="file" accept=".csv" required>
+<p><button>올리기</button></p></form>
+<h2>미분류 {{ unclassified|length }}개</h2>
+<p>사전으로 종류를 못 고른 상품입니다. 상품 목록에서 하나씩 종류(vertical_id)를 고치거나, Claude Code 세션에서 <code>jobs products-unclassified</code> → data/classify.json 작성 → <code>jobs products-classify</code> 로 한 번에 정합니다.</p>
+<table><tr><th>id</th><th>상품명</th><th>스토어</th></tr>
+{% for r in unclassified[:200] %}<tr><td><a href="{{ url_for('admin.edit', table='offers', row_id=r.id) }}">{{ r.id }}</a></td><td>{{ r.name }}</td><td>{{ r.advertiser }}</td></tr>{% endfor %}</table>
+<h2>최근 적재</h2>
+<table><tr><th>시각</th><th>파일</th><th>상품</th><th>추가</th><th>제외</th><th>변경</th><th>미분류</th></tr>
+{% for h in history %}<tr><td>{{ h.created_at }}</td><td>{{ h.filename }}</td><td>{{ h.rows_total }}</td><td>{{ h.added }}</td><td>{{ h.removed }}</td><td>{{ h.changed }}</td><td>{{ h.unclassified }}</td></tr>{% endfor %}</table>
+{% endblock %}

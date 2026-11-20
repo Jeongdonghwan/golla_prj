@@ -1,5 +1,5 @@
 """페이지 점검(시드·조립·공개된 DB 대상): python tests/test_pages.py
-유형마다 공개 페이지 하나씩: 200 · 고지 문구 · 상품 카드 '광고'·/go/ rel · 가격·평점 숫자 없음 · 같은 페이지 두 번 렌더하면 같은 본문 · /go/ 302.
+유형마다 공개 페이지 하나씩: 200 · 고지 문구 · 위·아래 '광고' 고지·/go/ rel · 가격·평점 숫자 없음 · 같은 페이지 두 번 렌더하면 같은 본문 · /go/ 302.
 """
 import os
 import re
@@ -24,7 +24,7 @@ for r in rows:
     t = a.get_data(as_text=True)
     assert a.status_code == 200, (r, a.status_code)
     assert "이 글에는 네이버 쇼핑 제휴 링크가 있으며, 구매 시 수수료를 받을 수 있습니다" in t, r
-    assert '<span class="ad">광고</span>' in t and 'rel="sponsored nofollow noopener" target="_blank"' in t, r
+    assert 'class="disclose">광고 ·' in t and '제휴 링크(광고)' in t and 'rel="sponsored nofollow noopener" target="_blank"' in t, r
     body = re.sub(r"<[^>]+>", " ", t.split("<main>")[1].split("</main>")[0])
     assert not re.search(r"\d{1,3}(,\d{3})+\s*원|평점\s*\d|리뷰\s*[\d,]+", body), (r, re.findall(r".{20}\d{1,3}(?:,\d{3})+\s*원.{5}", body)[:2])
     strip = lambda x: re.sub(r'<ul class="offers">.*?</ul>', "", x, flags=re.S)  # noqa: E731

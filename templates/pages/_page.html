@@ -15,7 +15,7 @@
     {% if not is_group %}<nav class="crumbs" aria-label="경로"><ol>{% for c in crumbs %}<li>{% if not loop.last %}<a href="{{ c.path }}">{{ c.name }}</a>{% else %}<span aria-current="page">{{ c.name }}</span>{% endif %}</li>{% endfor %}</ol></nav>
     {% else %}<p class="kicker">{{ site.group_name }} 가전 · 종류 {{ kinds|length }}가지</p>{% endif %}
     <h1>{{ page.h1 }}</h1>
-    <div class="disclose">이 글에는 네이버 쇼핑 제휴 링크가 있으며, 구매 시 수수료를 받을 수 있습니다.</div>
+    <div class="disclose">광고 · 이 글에는 네이버 쇼핑 제휴 링크가 있으며, 구매 시 수수료를 받을 수 있습니다.</div>
     {% if combo.content_updated_at and not is_group %}<div class="meta">{{ author.name if author }} · {{ combo.content_updated_at.strftime("%Y-%m-%d") }} 수정</div>{% endif %}
     <div class="answer">{% for a in page.answer %}<p>{{ a }}</p>{% endfor %}</div>
   </div>
@@ -23,7 +23,7 @@
     <a href="/go/{{ lead.id }}?p={{ combo.id }}&amp;s=lead" rel="sponsored nofollow noopener" target="_blank">
       <img src="{{ lead.image }}" alt="{{ lead.name }}" fetchpriority="high" decoding="async" referrerpolicy="no-referrer" width="480" height="480">
     </a>
-    <figcaption><span>{{ lead.advertiser }}</span>{{ lead.name }} <span class="ad">광고</span></figcaption>
+    <figcaption><span>{{ lead.advertiser }}</span>{{ lead.name }}</figcaption>
   </figure>{% endif %}
 </div></div>
 

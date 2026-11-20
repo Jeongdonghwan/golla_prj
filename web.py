@@ -34,7 +34,7 @@ STATIC_DESC = {  # 고정 페이지 설명(50~160자). {name}=사이트명
     "/면책조항/": "{name}의 글은 종류별 일반 정보입니다. 상품의 가격·사양·판매 조건은 판매처 기준이며 구매와 사용 결과에 대한 책임 범위를 안내합니다.",
     "/사이트맵/": "{name}의 상품 종류별 안내, 고르는 기준 글, 질문 글로 가는 길을 한곳에 모았습니다. 원하는 종류를 골라 이동하세요.",
 }
-SITEMAP_TYPES = {"hub": ("group_hub", "kind_hub"), "kw": ("kind_mod",), "qna": ("question",)}
+SITEMAP_TYPES = {"hub": ("group_hub", "kind_hub"), "kw": ("kind_mod", "versus"), "qna": ("question",)}
 SITEMAP_CHUNK = 5000
 BOT_RE = re.compile(r"bot|crawl|spider|yeti|slurp|curl|wget|python-requests|headless|lighthouse", re.I)
 B62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"

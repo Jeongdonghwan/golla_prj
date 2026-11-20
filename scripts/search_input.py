@@ -48,7 +48,9 @@ def main():
             done = {products.slugify(i["term"]) for i in json.loads(done_p.read_text("utf-8-sig"))["items"]} if done_p.exists() else set()
             urls = {r["url_path"] for r in db.q("SELECT url_path FROM keyword_combos WHERE vertical_id=%s", (v["id"],))}
             names = [o["name"] for o in products.kind_offers(v)]
-            items, seen = [], set(done)
+            skip_p = ROOT / "content" / "search" / "_skip.json"   # 세션이 이미 보고 뺀 말(동의어·상품 불일치) — 다시 넣지 않는다
+            skip = set(json.loads(skip_p.read_text("utf-8")).get(v["slug"], [])) if skip_p.exists() else set()
+            items, seen = [], set(done) | skip
             for row in csv.DictReader(pool.open(encoding="utf-8-sig")):
                 if row["servable"] != "1" or row["type"] not in ("브랜드·특징(상품 있음)", "조건"):
                     continue

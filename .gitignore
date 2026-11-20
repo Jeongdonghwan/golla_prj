@@ -10,3 +10,5 @@ reports/
 static/og/
 content/classify/pending.json
 content/cards/_input/
+content/search/_input/
+content/posts_input/

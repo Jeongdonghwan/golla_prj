@@ -86,7 +86,16 @@ def main():
             vocab = {norm(t) for ax in card.get("mods", {}).values() for t in ax}
             names = norm(" ".join(r["name"] for r in db.q("SELECT name FROM offers WHERE status='active' AND vertical_id=%s", (k["id"],))))
             rows = {}
-            for hints in ([k["name"]], [f"{b} {k['name']}" for b in brands[:4]]):
+            pool = out / f"pool_{k['slug']}.csv"
+            seeds = [[k["name"]], [f"{b} {k['name']}" for b in brands[:4]]]
+            if "--deep" in args:  # 카드의 모든 수식어·방식·브랜드를 힌트로(5개씩) + 기존 풀과 합침
+                from keywords import method_label
+                terms = [t for ax in card.get("mods", {}).values() for t in ax] + [method_label(m["name"], k["name"]) for m in card.get("methods", [])] + brands[4:]
+                hs = [f"{t} {k['name']}" for t in dict.fromkeys(terms)]
+                seeds = [hs[i:i + 5] for i in range(0, len(hs), 5)]
+                if pool.exists():
+                    rows = {r["keyword"]: int(r["monthly"]) for r in csv.DictReader(pool.open(encoding="utf-8-sig"))}
+            for hints in seeds:
                 if not hints:
                     continue
                 try:
@@ -98,7 +107,7 @@ def main():
             kn = norm(k["name"])
             keep = sorted(((kw, v) for kw, v in rows.items() if v >= vmin and kn in norm(kw) and norm(kw) not in have), key=lambda x: -x[1])
             c = Counter()
-            with open(out / f"pool_{k['slug']}.csv", "w", encoding="utf-8-sig", newline="") as f:
+            with open(pool, "w", encoding="utf-8-sig", newline="") as f:
                 w = csv.writer(f)
                 w.writerow(["keyword", "monthly", "type", "servable"])
                 for kw, v in keep:

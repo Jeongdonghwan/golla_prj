@@ -5,7 +5,7 @@
 {% for o in offers %}
   <li>
     <a class="thumb" href="/go/{{ o.id }}?p={{ combo.id }}&amp;s={{ slot }}" rel="sponsored nofollow noopener" target="_blank" tabindex="-1" aria-hidden="true">
-      {% if o.image %}<img src="{{ o.image }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="300" height="300">
+      {% if o.image %}<img src="{{ o.image }}" alt="{{ o.name }}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="300" height="300">
       {% else %}<span class="ph"><b>{{ o.kind or "상품" }}</b>{% if o.brand %}<i>{{ o.brand }}</i>{% endif %}</span>{% endif %}
     </a>
     <div class="body">

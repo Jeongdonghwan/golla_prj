@@ -43,6 +43,17 @@ cpa_prj 호스트가 이미 수집 중이면 `DASH_ONLY` 에 그 호스트도 �
 2. 로컬 세션: `data/inbox/<날짜>.csv` 로 저장 → `jobs products-inbox` → `jobs products-unclassified` → `data/classify.json` 작성(새 종류면 `content/cards/<종류>.json` 도) → `jobs products-classify` → `jobs refresh` 로 확인 → 커밋·푸시.
 3. 서버 cron 05:30: `git pull` → `products-inbox`(추가만, 기존 상품 안 내림) → `refresh`(새 페이지 대기열) → 썸네일. 05:40 publish 가 하루 THEN 쪽 공개.
 
+## 실제 검색 키워드 페이지 (search)
+
+1. `python scripts/kw_research.py` — 네이버 검색광고 키워드도구로 종류별 연관 키워드·월 검색수 → `keywords/pool_<slug>.csv`(gitignore). 키는 로컬 `.env` 의 NAVER_AD_*.
+2. `python scripts/search_input.py --top 60` — 상품 있는 말만, 이미 쓴 말·있는 주소 빼고 → `content/search/_input/<slug>.json`.
+3. 세션이 `prompts/search.md` 대로 `content/search/<slug>.json` 에 3문장씩 덧붙임 → `jobs cards-load --check` → 커밋·푸시. 서버 05:30 refresh 가 페이지(월 1,000+ A, 그 밖 B)를 대기열에 붙인다.
+- `docs/product_wishlist.md`: 상품이 없어 못 만든 말(월 검색수 순) — 이 상품을 CSV 로 주면 다음 조사 때 페이지가 된다.
+- `keywords/post_topics.csv`: 문제·사용법 검색어 — 매일 글(posts) 주제.
+
+## 하루 공개 기준
+- 통로: ① 매일 글 40 ② 검색 키워드 페이지(세션 작성량) ③ 새 상품 목록 → 새 종류(종류당 약 30~160쪽). 모두 한 대기열, 매일 05:40 상한(THEN)만큼 우선순위 순 공개, 넘는 몫은 다음 날.
+
 ## 매주 상품 교체
 
 관리자 `https://heat.golrabom.kr/admin/products` 에 커넥트 최신 CSV 업로드 → 추가·제외·변경 표 확인. 미분류가 있으면 로컬 세션에서

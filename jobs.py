@@ -52,6 +52,20 @@ def products_import(path):
         click.echo(f"  {e}")
 
 
+@jobs_cli.command("products-inbox")
+@click.option("--dir", "folder", default=str(ROOT / "data" / "inbox"))
+def products_inbox(folder):
+    """매일 새 상품: data/inbox/*.csv 중 아직 안 넣은 파일(offer_imports.filename 기준)을 '추가만' 모드로 넣고 세션 분류를 적용.
+    서버 cron 05:30 이 git pull 뒤에 돌린다. 기존 상품은 내리지 않는다(전체 교체는 관리자 화면 업로드)."""
+    done = {r["filename"] for r in db.q("SELECT filename FROM offer_imports")}
+    for f in sorted(Path(folder).glob("*.csv")):
+        if f.name in done:
+            continue
+        r = products.import_csv(f.read_text("utf-8-sig"), f.name, add_only=True)
+        click.echo(f"{f.name}: 추가 {r['added']} · 변경 {r['changed']} · 미분류 {r['unclassified']} · 오류 {len(r['errors'])}")
+    click.echo(f"분류 적용 {products.apply_overrides()}개")
+
+
 @jobs_cli.command("products-unclassified")
 @click.option("--out", default=str(ROOT / "content" / "classify" / "pending.json"))
 def products_unclassified(out):

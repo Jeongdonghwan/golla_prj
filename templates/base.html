@@ -43,7 +43,7 @@
 <footer class="foot"><div class="wrap">
   <p>{{ settings.footer_note or (site.name ~ "의 상품 링크는 네이버 쇼핑 제휴 링크이며, 링크를 거쳐 구매하면 운영사가 수수료를 받을 수 있습니다. 가격·재고·배송은 판매처에서 확인하세요.") }}</p>
   <p>{% for url, p in static_pages.items() %}<a href="{{ url }}">{{ p[1] }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</p>
-  <p>상호 {{ settings.op_name }} · 대표 {{ settings.op_ceo }} · 사업자등록번호 {{ settings.op_bizno }}<br>주소 {{ settings.op_address }} · 이메일 {{ settings.op_email }}</p>
+  <p>상호 {{ settings.op_name }} · 대표 {{ settings.op_ceo }} · 사업자등록번호 {{ settings.op_bizno }}<br>{% if settings.op_address %}주소 {{ settings.op_address }} · {% endif %}이메일 {{ settings.op_email }}</p>
 </div></footer>
 </body>
 </html>

@@ -328,13 +328,16 @@ def classify(p, kinds, overrides):
 
 
 # ── 적재(교체) ────────────────────────────────────────────────────────────
-def import_csv(text, filename="upload.csv"):
-    """URL 로 대조: 새 상품 추가·분류 / 목록에서 빠진 상품 inactive / 수수료·이름 변경 반영. 결과 요약 dict."""
+def import_csv(text, filename="upload.csv", add_only=False):
+    """URL 로 대조: 새 상품 추가·분류 / 목록에서 빠진 상품 inactive / 수수료·이름 변경 반영. 결과 요약 dict.
+    add_only: 매일 주는 '새 상품만' 목록 — 목록에 없는 기존 상품을 내리지 않는다."""
     rows, errors = read_csv(text)
     if not rows:
         raise ValueError("읽은 상품이 없습니다: " + "; ".join(errors[:3]))
     kinds, overrides = ensure_kinds(), load_overrides()
     brand_n = Counter(brand_token(p["name"]) for p in rows)
+    if add_only:  # 작은 목록이라 브랜드 3개 기준을 기존 상품까지 합쳐서 센다
+        brand_n += Counter(brand_token(r["name"]) for r in q("SELECT name FROM offers WHERE status='active'"))
     existing = {r["url"]: r for r in q("SELECT id, url, name, fee, fee_extra, status, vertical_id, classified_by FROM offers")}
     added = changed = 0
     for p in rows:
@@ -358,7 +361,7 @@ def import_csv(text, filename="upload.csv"):
             ex("INSERT INTO offers (url, " + ",".join(vals) + ", imported_at) VALUES (%s," + ",".join(["%s"] * len(vals)) + ",NOW())",
                [p["url"], *vals.values()])
             added += 1
-    gone = [r["id"] for u, r in existing.items() if r["status"] == "active" and u not in {p["url"] for p in rows}]
+    gone = [] if add_only else [r["id"] for u, r in existing.items() if r["status"] == "active" and u not in {p["url"] for p in rows}]
     if gone:
         ex("UPDATE offers SET status='inactive' WHERE id IN (" + ",".join(["%s"] * len(gone)) + ")", gone)
     unclassified = q1("SELECT COUNT(*) n FROM offers WHERE status='active' AND classified_by IS NULL")["n"]

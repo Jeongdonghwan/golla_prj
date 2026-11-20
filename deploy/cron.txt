@@ -1,7 +1,7 @@
 # 골라봄(shopa_prj) 배치. install.sh 가 /etc/cron.d/shopa_prj 로 설치한다. 시각은 KST 서버 기준.
 # 매일 05:40(같은 서버 web_jd8 빌드 03:00 · cpa_prj 05:10 과 겹치지 않게): 공개 계획대로 열기 → 사이트맵·.ops.json 갱신(대시보드가 읽음) → IndexNow
 40 5 * * * root cd /var/www/shopa_prj && ./venv/bin/flask --app app jobs publish --quiet >> /var/log/shopa_prj.log 2>&1 && ./venv/bin/flask --app app jobs export-sitemaps export >> /var/log/shopa_prj.log 2>&1 && ./venv/bin/flask --app app jobs indexnow >> /var/log/shopa_prj.log 2>&1
-# 05:30: 저장소의 카드 변경(새 종류·질문 글·문단 보강) 받기 → 페이지 생성·채점(새 페이지는 대기열 뒤에)
-30 5 * * * root cd /var/www/shopa_prj && git pull -q >> /var/log/shopa_prj.log 2>&1 && ./venv/bin/flask --app app jobs refresh >> /var/log/shopa_prj.log 2>&1; ./venv/bin/flask --app app jobs offers-thumbs >> /var/log/shopa_prj.log 2>&1
+# 05:30: 저장소의 새 상품(data/inbox/*.csv, 추가만)·카드 변경(새 종류·질문 글·문단 보강) 받기 → 페이지 생성·채점(새 페이지는 대기열 뒤에)
+30 5 * * * root cd /var/www/shopa_prj && git pull -q >> /var/log/shopa_prj.log 2>&1 && ./venv/bin/flask --app app jobs products-inbox >> /var/log/shopa_prj.log 2>&1; ./venv/bin/flask --app app jobs refresh >> /var/log/shopa_prj.log 2>&1; ./venv/bin/flask --app app jobs offers-thumbs >> /var/log/shopa_prj.log 2>&1
 # 클릭 집계(하루)
 50 3 * * * root cd /var/www/shopa_prj && ./venv/bin/flask --app app jobs rollup >> /var/log/shopa_prj.log 2>&1

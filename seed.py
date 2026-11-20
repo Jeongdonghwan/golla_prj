@@ -17,7 +17,7 @@ from app import create_app
 
 ROOT = Path(__file__).parent
 DOMAIN = "golrabom.kr"
-SETTINGS = {"op_name": "미정(임시)", "op_ceo": "미정(임시)", "op_bizno": "미정(임시)", "op_address": "미정(임시)", "op_email": "미정(임시)",
+SETTINGS = {"op_name": "주식회사 제이디에이치", "op_ceo": "정동환", "op_bizno": "503-87-03619", "op_address": "", "op_email": "jdhwan227@naver.com",
             "indexnow_daily_cap": "10000"}
 # 상품군별 강조색(버튼·번호·OG 카드). install.sh 4단계도 같은 값을 넣는다(INSERT IGNORE — 관리자에서 바꾼 값은 유지)
 ACCENTS = {"heat": "#c4471d", "air": "#1f6f8b", "clean": "#2e7d5b", "kitchen": "#b5382f", "beauty": "#a3326b", "digital": "#3446a8", "life": "#5f7a24"}

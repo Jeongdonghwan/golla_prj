@@ -37,6 +37,12 @@ cpa_prj 호스트가 이미 수집 중이면 `DASH_ONLY` 에 그 호스트도 �
 - 새 종류·질문 글·문단 보강은 로컬 Claude Code 세션이 `content/cards/<종류>.json` 을 고치고(`jobs cards-input --missing` → prompts/card.md 규칙) `jobs cards-load --check` 통과 후 커밋·푸시한다.
 - 서버 cron 05:30 이 `git pull` → `jobs refresh`(cards-load → keywords → assemble)로 새 페이지를 만들어 승인 대기열 뒤에 붙이고, 05:40 publish 가 하루 수만큼 연다.
 
+## 매일 새 상품 (사용자 → 로컬 세션 → 서버 자동)
+
+1. 사용자가 그날 새 상품 CSV(커넥트 형식, 새 것만)를 세션에 준다.
+2. 로컬 세션: `data/inbox/<날짜>.csv` 로 저장 → `jobs products-inbox` → `jobs products-unclassified` → `data/classify.json` 작성(새 종류면 `content/cards/<종류>.json` 도) → `jobs products-classify` → `jobs refresh` 로 확인 → 커밋·푸시.
+3. 서버 cron 05:30: `git pull` → `products-inbox`(추가만, 기존 상품 안 내림) → `refresh`(새 페이지 대기열) → 썸네일. 05:40 publish 가 하루 THEN 쪽 공개.
+
 ## 매주 상품 교체
 
 관리자 `https://heat.golrabom.kr/admin/products` 에 커넥트 최신 CSV 업로드 → 추가·제외·변경 표 확인. 미분류가 있으면 로컬 세션에서

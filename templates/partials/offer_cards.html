@@ -6,11 +6,10 @@
     <a class="thumb" href="/go/{{ o.id }}?p={{ combo.id }}&amp;s={{ slot }}" rel="sponsored nofollow noopener" target="_blank" tabindex="-1" aria-hidden="true">
       {% if o.image %}<img src="{{ o.image }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="300" height="300">
       {% else %}<span class="ph"><b>{{ o.kind or "상품" }}</b>{% if o.brand %}<i>{{ o.brand }}</i>{% endif %}</span>{% endif %}
-      <span class="ad">광고</span>
     </a>
     <div class="body">
-      <p class="store"><span class="no">{{ "%02d" % loop.index }}</span>{{ o.advertiser }}</p>
-      <h3>{{ o.name }}</h3>
+      <p class="store"><span class="no">{{ "%02d" % loop.index }}</span>{{ o.advertiser }}<span class="ad">광고</span></p>
+      <h3><a class="go" href="/go/{{ o.id }}?p={{ combo.id }}&amp;s={{ slot }}" rel="sponsored nofollow noopener" target="_blank">{{ o.name }}</a></h3>
       {% if o.reason %}<p class="why"><span>이 조건과 맞는 점</span> {{ o.reason }}</p>{% endif %}
       {% if o.pick and o.pick.feats %}<p class="feats">{% for f in o.pick.feats %}<span>{{ f }}</span>{% endfor %}</p>{% endif %}
       {% if o.pick and o.pick.say %}<ul class="say">{% for t in o.pick.say %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}

@@ -22,9 +22,8 @@
   {% if lead %}<figure class="pick">
     <a href="/go/{{ lead.id }}?p={{ combo.id }}&amp;s=lead" rel="sponsored nofollow noopener" target="_blank">
       <img src="{{ lead.image }}" alt="{{ lead.name }}" fetchpriority="high" decoding="async" referrerpolicy="no-referrer" width="480" height="480">
-      <span class="ad">광고</span>
     </a>
-    <figcaption><span>{{ lead.advertiser }}</span>{{ lead.name }}</figcaption>
+    <figcaption><span>{{ lead.advertiser }}</span>{{ lead.name }} <span class="ad">광고</span></figcaption>
   </figure>{% endif %}
 </div></div>
 

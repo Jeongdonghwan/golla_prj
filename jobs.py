@@ -126,10 +126,10 @@ def publish(only, quiet):
 @click.argument("start")
 @SITE_OPT
 @click.option("--then", "then", type=int, required=True, help="둘째 날부터 하루 공개 수(사용자가 정한다)")
-@click.option("--grades", default="ABC", help="첫날(START) 여는 등급. 기본 A·B·C 전부(사용자 결정 2026-11-19: 첫날 통과 페이지 전부)")
+@click.option("--grades", default="ABCD", help="첫날(START) 여는 등급. 기본 전 등급(사용자 결정 2026-11-20: 첫날 만든 페이지 전부, 이후엔 새로 만든 것만 하루 THEN 쪽)")
 @click.option("--posts-per-day", type=int, default=None, help="질문 글 하루 편수(생략하면 기존 값 유지)")
 def plan(start, only, then, grades, posts_per_day):
-    """공개 계획 저장: START 하루에 GRADES 등급 승인 페이지 전부, 이후 나머지(D 등급·새로 만든 페이지)를 하루 THEN 쪽씩 우선순위 순으로.
+    """공개 계획 저장: START 하루에 GRADES 등급 승인 페이지 전부, 이후 나머지(새로 만든 페이지)를 하루 THEN 쪽씩 우선순위 순으로.
     새 페이지는 기존 대기열 뒤에 붙는다(우선순위 + id 순). 열린 페이지는 닫지 않는다."""
     for site in _sites(only):
         marks = ",".join(["%s"] * len(grades))

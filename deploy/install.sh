@@ -36,6 +36,8 @@ M=(mysql -u shopa_prj "-p$DBPW" shopa_prj)
 if ! "${M[@]}" -e "SELECT 1 FROM keyword_combos LIMIT 1" >/dev/null 2>&1; then
   echo "덤프 적재 중…"; gunzip -c deploy/shopa_prj.sql.gz | "${M[@]}"
 fi
+"${M[@]}" -e "ALTER TABLE offers ADD COLUMN IF NOT EXISTS image VARCHAR(500) NULL AFTER label;"
+"${M[@]}" -e "INSERT IGNORE INTO site_settings (site_id,\`key\`,\`value\`) SELECT id,'theme',CONCAT('{\"accent\": \"',ELT(FIELD(SUBSTRING_INDEX(host,'.',1),'heat','air','clean','kitchen','beauty','digital','life'),'#c4471d','#1f6f8b','#2e7d5b','#b5382f','#a3326b','#3446a8','#5f7a24'),'\"}') FROM sites;"
 "${M[@]}" -e "UPDATE sites SET host=CONCAT(SUBSTRING_INDEX(host,'.',1),'.$D'), indexnow_key=IFNULL(indexnow_key, MD5(RAND()));"
 "${M[@]}" -e "SELECT host, (SELECT COUNT(*) FROM keyword_combos k WHERE k.site_id=s.id) pages FROM sites s;"
 
@@ -83,6 +85,8 @@ if [ -z "$("${M[@]}" -N -e "SELECT 1 FROM site_settings WHERE \`key\`='publish_p
 else
   echo "공개 계획이 이미 있음 — 다시 닫지 않고 오늘 몫만 확인"
 fi
+nohup $F offers-thumbs >> /var/log/shopa_prj.log 2>&1 &   # 상품 썸네일(약 1시간, 뒤에서). 그동안 카드는 글자 썸네일
+echo "썸네일 받기 시작(뒤에서) — tail -f /var/log/shopa_prj.log"
 $F publish --quiet && $F export-sitemaps export && $F indexnow
 cp deploy/cron.txt /etc/cron.d/shopa_prj && chmod 644 /etc/cron.d/shopa_prj && echo "cron 설치(매일 05:40 공개)"
 

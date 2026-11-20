@@ -58,6 +58,7 @@ CREATE TABLE offers (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, vertical_id SMALLINT UNSIGNED NULL,   -- NULL = 미분류(세션이 분류)
   url VARCHAR(255) NOT NULL UNIQUE, name VARCHAR(200) NOT NULL, advertiser VARCHAR(100) NOT NULL,   -- advertiser = 스토어
   brand VARCHAR(40) NULL, tags JSON, label VARCHAR(40) NULL,            -- label: NEW·기획전 이름 등 CSV 앞머리 표시
+  image VARCHAR(500) NULL,                                              -- 썸네일 주소(링크 미리보기 og:image, jobs offers-thumbs). '' = 못 찾음
   fee DECIMAL(5,2) NOT NULL DEFAULT 0, fee_extra DECIMAL(5,2) NOT NULL DEFAULT 0,
   list_price INT NULL, sale_price INT NULL, discount_pct TINYINT NULL, rating DECIMAL(3,2) NULL, review_count INT NULL,
   score DECIMAL(12,3) NOT NULL DEFAULT 0, manual_weight TINYINT NOT NULL DEFAULT 1,

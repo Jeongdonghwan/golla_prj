@@ -5,9 +5,11 @@
       C  수식어 2개(공간·대상·상황×특징, 공간·대상×가격대, 브랜드×특징·의도)
       D  수식어 3개(공간·대상×특징×가격대)
 우선순위 = 등급 + 계절(난방·공기 상품군) + 종류 평균 수수료. 새로 만든 페이지는 기존 대기열 뒤에(같은 점수면 id 순).
+차이  B  방식 두 개 비교(카드 methods 쌍): /{종류}/{방식}-{방식}-차이/
 주소: /{종류}/ · /{종류}/{수식어}/ · /{종류}/{수식어}-{수식어}/ · /{종류}/qna/{슬러그}/ · 상품군 허브는 메인(/).
 """
 import json
+import re
 from collections import Counter
 
 import products
@@ -42,6 +44,19 @@ def keyword(kind, mods):
     feat = [t for a, t in mods if a == "feature"]
     post = [t for a, t in mods if a in ("price", "intent")]
     return " ".join(pre + feat + [kind] + post)
+
+
+def method_label(name, kind):
+    """카드 방식 이름 → 검색어용 짧은 이름: '콘센트형(교류) 전기방석' → '콘센트형'."""
+    s = re.sub(r"\(.*?\)", "", name).replace(kind, "").replace(" 방식", "")
+    return re.sub(r"\s+", " ", s).strip(" ·") or name
+
+
+def vs_pairs(card, kind):
+    """방식 차이 페이지 쌍: [(i, j, '전기방석 콘센트형 USB형 차이', 'url 조각')]."""
+    ls = [method_label(m["name"], kind) for m in card.get("methods", [])]
+    return [(i, j, f"{kind} {ls[i]} {ls[j]} 차이", f"{products.slugify(ls[i])}-{products.slugify(ls[j])}-차이")
+            for i in range(len(ls)) for j in range(i + 1, len(ls)) if ls[i] != ls[j]]
 
 
 def _insert(site_id, v, page_type, mods, url, parent, grade, prio, kw=None):
@@ -99,6 +114,8 @@ def build_kind(v, hub_parent):
                         f"{root}/{products.slugify(ta)}-{products.slugify(tb)}-{products.slugify(tc)}/", pair_ids[(a, ta, b, tb)], "D")
     for p in card.get("posts", []):
         add("question", [], f"{root}/qna/{p['slug']}/", hub, "B", kw=p["title"])
+    for _i, _j, kw, slug in vs_pairs(card, v["name"]):  # 방식 차이(비교 검색어) — 판매 의도가 높아 B
+        add("versus", [], f"{root}/{slug}/", hub, "B", kw=kw)
     return made
 
 

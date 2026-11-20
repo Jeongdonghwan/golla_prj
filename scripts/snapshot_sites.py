@@ -4,6 +4,7 @@
     python scripts/snapshot_sites.py <출력 폴더> [표본수=60] [서버=http://127.0.0.1:5000]   (프로젝트 venv)
 """
 import os
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -51,8 +52,15 @@ def main():
             host = f"{label}.localhost:5000"
             root = os.path.join(OUT, label, "out")
             rows = db.q("SELECT url_path FROM keyword_combos WHERE site_id=%s AND status='published' ORDER BY RAND() LIMIT %s", (s["id"], N))
+            cards = set()
             for path in EXTRA + [r["url_path"] for r in rows]:
-                save(root, path, fetch(host, path))
+                body = fetch(host, path)
+                save(root, path, body)
+                cards |= set(re.findall(rb"/og/c/\d+\.webp", body))
+            for c in sorted(cards):  # 페이지별 OG 카드(og.py) — og:image·ItemList 가 가리키는 파일을 점검기가 찾도록 같이 둔다
+                f = os.path.join(root, c.decode().strip("/"))
+                os.makedirs(os.path.dirname(f), exist_ok=True)
+                open(f, "wb").write(fetch(host, c.decode()))
             # 사이트맵: 운영에서는 export/<라벨>/ 의 파일을 nginx 가 내준다 → 그 파일을 쓰되, 주소는 표본에 있는 것만 남긴다
             locs = "".join(f"<url><loc>https://{s['host']}{urllib.parse.quote(p)}</loc></url>\n" for p in ["/"] + [r["url_path"] for r in rows])
             open(os.path.join(root, "sitemap.xml"), "w", encoding="utf-8").write(

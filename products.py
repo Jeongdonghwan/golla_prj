@@ -15,6 +15,26 @@ from pathlib import Path
 
 from db import ex, q, q1
 
+OG_IMAGE_RE = re.compile(r"""<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]*>""", re.I)
+
+
+def og_image(html):
+    """링크 미리보기용 썸네일 주소(og:image). 없으면 ''."""
+    for tag in OG_IMAGE_RE.findall(html or ""):
+        m = re.search(r"""content=["']([^"']+)""", tag, re.I)
+        if m and m.group(1).startswith(("http://", "https://")):
+            return m.group(1).replace("&amp;", "&")
+    return ""
+
+
+def fetch_thumb(url, timeout=10):
+    """링크 미리보기처럼 한 번 열어 og:image 를 읽는다(상품마다 한 번, 결과는 offers.image 에 저장).
+    naver.me 는 미리보기 봇 UA 일 때만 og:image 가 든 페이지를 준다(일반 UA 는 JS 빈 페이지)."""
+    import urllib.request
+    req = urllib.request.Request(url, headers={"User-Agent": "facebookexternalhit/1.1", "Accept-Language": "ko"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return og_image(r.read(400_000).decode("utf-8", "replace"))
+
 ROOT = Path(__file__).parent
 OVERRIDES = ROOT / "data" / "classify.json"   # {url: {"kind": "종류" | "제외", "tags": [...]}} — 다시 올려도 유지된다
 SKIP = "제외"                                  # 가전 사이트에 싣지 않을 상품(세션 판단)
@@ -416,4 +436,6 @@ if __name__ == "__main__":  # 자체 점검: python products.py (DB 불필요)
     assert kind_of("엘레센스 2in1 모니터 조명 라이트바 LED 스탠드 램프")[1] == "조명·무드등"
     assert kind_of("블라우풍트 블루소닉 음파 전동 칫솔 스윙 모션 고주파 잇몸")[1] == "전동칫솔"
     assert kind_of("윈드비 천장형 에어컨 바람막이") == (None, SKIP) and kind_of("젤 네일 드릴 발톱 그라인더") == (None, SKIP)
+    assert og_image('<meta property="og:image" content="https://shop-phinf.pstatic.net/a.jpg?type=m510&amp;x=1">') == "https://shop-phinf.pstatic.net/a.jpg?type=m510&x=1"
+    assert og_image('<meta content="//x.jpg" property="og:image">') == "" and og_image("") == ""
     print("ok")

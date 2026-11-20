@@ -64,7 +64,7 @@ def published(site_id, page_types=None, limit=50000, offset=0):
     if page_types:
         where = " AND page_type IN (%s)" % ",".join(["%s"] * len(page_types))
         args += list(page_types)
-    return q(f"""SELECT id, page_type, url_path, primary_keyword, content_updated_at FROM keyword_combos
+    return q(f"""SELECT id, page_type, url_path, primary_keyword, vertical_id, content_updated_at FROM keyword_combos
                  WHERE site_id=%s AND status='published'{where} ORDER BY id LIMIT %s OFFSET %s""", args + [limit, offset])
 
 
@@ -77,6 +77,25 @@ def latest_published(site_id, n=20):
     return q("""SELECT c.url_path, c.content_updated_at, p.title, p.meta_description FROM keyword_combos c
                 JOIN page_contents p ON p.combo_id=c.id AND p.version=c.content_version
                 WHERE c.site_id=%s AND c.status='published' ORDER BY c.content_updated_at DESC, c.id LIMIT %s""", (site_id, n))
+
+
+def published_with_text(site_id, page_types, n=6, newest=False):
+    """메인 글 목록용: 공개 페이지 + 제목·설명(cpa_prj 와 같은 모양)."""
+    order = "c.published_at DESC, c.id DESC" if newest else "c.id"
+    return q(f"""SELECT c.id, c.vertical_id, c.page_type, c.published_at, c.url_path, c.primary_keyword, p.title, p.h1, p.meta_description FROM keyword_combos c
+                JOIN page_contents p ON p.combo_id=c.id AND p.version=c.content_version
+                WHERE c.site_id=%s AND c.status='published' AND c.page_type IN ({",".join(["%s"] * len(page_types))})
+                ORDER BY {order} LIMIT %s""", [site_id, *page_types, n])
+
+
+def published_rec(site_id, n=12):
+    """메인 '추천' 목록: 종류마다 우선순위 높은 A등급 키워드 페이지 하나씩(추천형 제목)."""
+    return q("""SELECT c.id, c.vertical_id, c.page_type, c.published_at, c.url_path, c.primary_keyword, p.h1, p.meta_description FROM keyword_combos c
+                JOIN page_contents p ON p.combo_id=c.id AND p.version=c.content_version
+                WHERE c.site_id=%s AND c.status='published' AND c.page_type='kind_mod' AND c.grade='A'
+                  AND c.id = (SELECT c2.id FROM keyword_combos c2 WHERE c2.vertical_id=c.vertical_id AND c2.site_id=c.site_id AND c2.status='published'
+                              AND c2.page_type='kind_mod' AND c2.grade='A' AND c2.mod2_id IS NULL ORDER BY c2.priority_score DESC, c2.id LIMIT 1)
+                ORDER BY c.priority_score DESC LIMIT %s""", (site_id, n))
 
 
 _LINK = "SELECT id, vertical_id, url_path, primary_keyword FROM keyword_combos WHERE status='published' AND "

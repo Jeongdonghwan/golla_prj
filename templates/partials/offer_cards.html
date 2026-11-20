@@ -1,14 +1,22 @@
-{# 상품 카드: '광고' 표시 · 상품명 · 스토어 · 이 페이지 조건과 맞는 이유(상품명 태그). 가격·평점 숫자와 상품 이미지는 쓰지 않는다.
-   링크는 /go/<id> 경유 + rel="sponsored nofollow noopener" target=_blank — 상품이 바뀌어도 이 틀과 본문은 그대로. #}
-<ul class="offers">
+{# 추천 상품 목록: 번호 · 썸네일(링크 미리보기 og:image, 없으면 글자 썸네일) · '광고' · 스토어 · 상품명 · 이 조건과 맞는 점 · 특징 · 추천 이유(카드 사실 문장) · 버튼.
+   가격·평점 숫자, 순위·최상급은 쓰지 않는다. 링크는 /go/<id> 경유 + rel="sponsored nofollow noopener" target=_blank. #}
+<ol class="offers">
 {% for o in offers %}
   <li>
-    <p class="ad">광고</p>
-    <h3>{{ o.name }}</h3>
-    <p class="store">{{ o.advertiser }}</p>
-    {% if o.reason %}<p class="why">이 조건과 맞는 점: {{ o.reason }}</p>{% endif %}
-    <p class="go"><a class="btn" href="/go/{{ o.id }}?p={{ combo.id }}&amp;s={{ slot }}" rel="sponsored nofollow noopener" target="_blank">{{ loop.cycle("오늘 가격 보기", "할인가 확인하기") }}</a></p>
+    <a class="thumb" href="/go/{{ o.id }}?p={{ combo.id }}&amp;s={{ slot }}" rel="sponsored nofollow noopener" target="_blank" tabindex="-1" aria-hidden="true">
+      {% if o.image %}<img src="{{ o.image }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="300" height="300">
+      {% else %}<span class="ph"><b>{{ o.kind or "상품" }}</b>{% if o.brand %}<i>{{ o.brand }}</i>{% endif %}</span>{% endif %}
+      <span class="ad">광고</span>
+    </a>
+    <div class="body">
+      <p class="store"><span class="no">{{ "%02d" % loop.index }}</span>{{ o.advertiser }}</p>
+      <h3>{{ o.name }}</h3>
+      {% if o.reason %}<p class="why"><span>이 조건과 맞는 점</span> {{ o.reason }}</p>{% endif %}
+      {% if o.pick and o.pick.feats %}<p class="feats">{% for f in o.pick.feats %}<span>{{ f }}</span>{% endfor %}</p>{% endif %}
+      {% if o.pick and o.pick.say %}<ul class="say">{% for t in o.pick.say %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}
+      <a class="btn" href="/go/{{ o.id }}?p={{ combo.id }}&amp;s={{ slot }}" rel="sponsored nofollow noopener" target="_blank">{{ loop.cycle("오늘 가격 보기", "할인가 확인하기") }}</a>
+    </div>
   </li>
 {% endfor %}
-</ul>
-<p class="fine">가격·할인·재고는 판매처에서 확인하세요.</p>
+</ol>
+<div class="fine">광고 · 네이버 쇼핑 제휴 링크. 가격·할인·재고는 판매처에서 확인하세요.</div>

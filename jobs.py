@@ -82,6 +82,31 @@ def products_summary():
     click.echo(f"활성 {st['active']} · 빠짐 {st['inactive']} · 미분류 {st['pending']} · 제외 {st['skipped']}")
 
 
+@jobs_cli.command("offers-thumbs")
+@click.option("--limit", default=0, help="이번에 처리할 최대 수(0=전부)")
+@click.option("--delay", default=2.0, help="요청 사이 초")
+@click.option("--retry", is_flag=True, help="못 찾았던 상품('')도 다시")
+def offers_thumbs(limit, delay, retry):
+    """썸네일이 없는 활성 상품의 링크를 한 번씩 열어 og:image 를 저장(링크 미리보기와 같은 방식). 새 상품만 처리하므로 매일 돌려도 몇 건."""
+    import time
+    cond = "(image IS NULL OR image='')" if retry else "image IS NULL"
+    rows = db.q(f"SELECT id, url FROM offers WHERE status='active' AND vertical_id IS NOT NULL AND {cond} ORDER BY score DESC" + (f" LIMIT {int(limit)}" if limit else ""))
+    ok = 0
+    for i, r in enumerate(rows):
+        try:
+            img = products.fetch_thumb(r["url"])
+        except Exception as e:  # 실패는 '' 로 두고 다음 상품
+            img = ""
+            click.echo(f"  {r['id']} 실패: {e}")
+        db.ex("UPDATE offers SET image=%s WHERE id=%s", (img[:500], r["id"]))
+        ok += bool(img)
+        if i + 1 < len(rows):
+            time.sleep(delay)
+    if rows:
+        db.ex("UPDATE sites SET cache_version=cache_version+1")
+    click.echo(f"썸네일 {ok}/{len(rows)}")
+
+
 # ── 콘텐츠 ────────────────────────────────────────────────────────────────
 # ── 공개 ──────────────────────────────────────────────────────────────────
 @jobs_cli.command("publish")
@@ -329,13 +354,14 @@ def cards_input(missing):
 
 @jobs_cli.command("cards-load")
 @click.option("--check", is_flag=True, help="점검만(적재하지 않음)")
-def cards_load(check):
+@click.option("--only", default=None, help="이 slug 들만(쉼표로)")
+def cards_load(check, only):
     """content/cards/<slug>.json 을 점검하고 통과한 카드를 verticals.card 에 넣는다."""
     import cards
     ok = bad = 0
     for v in db.q("SELECT * FROM verticals WHERE is_active=1 ORDER BY site_id, id"):
         path = cards.CARD_DIR / f"{v['slug']}.json"
-        if not path.exists():
+        if not path.exists() or (only and v["slug"] not in only.split(",")):
             continue
         try:
             card = json.loads(path.read_text("utf-8-sig"))

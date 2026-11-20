@@ -19,6 +19,8 @@ ROOT = Path(__file__).parent
 DOMAIN = "golrabom.kr"
 SETTINGS = {"op_name": "미정(임시)", "op_ceo": "미정(임시)", "op_bizno": "미정(임시)", "op_address": "미정(임시)", "op_email": "미정(임시)",
             "indexnow_daily_cap": "10000"}
+# 상품군별 강조색(버튼·번호·OG 카드). install.sh 4단계도 같은 값을 넣는다(INSERT IGNORE — 관리자에서 바꾼 값은 유지)
+ACCENTS = {"heat": "#c4471d", "air": "#1f6f8b", "clean": "#2e7d5b", "kitchen": "#b5382f", "beauty": "#a3326b", "digital": "#3446a8", "life": "#5f7a24"}
 DIMENSIONS = [("space", "공간"), ("persona", "대상"), ("situation", "상황"), ("feature", "특징"), ("price", "가격대"),
               ("intent", "의도"), ("question", "질문"), ("brand", "브랜드")]
 
@@ -43,7 +45,7 @@ def main():
         for label, (sid, group) in products.GROUPS.items():
             db.ex("INSERT INTO sites (id, host, name, group_name, indexnow_key) VALUES (%s,%s,%s,%s,%s)",
                   (sid, f"{label}.{DOMAIN}", "골라봄", group, secrets.token_hex(16)))
-            for k, v in SETTINGS.items():
+            for k, v in {**SETTINGS, "theme": json.dumps({"accent": ACCENTS[label]})}.items():
                 db.ex("INSERT INTO site_settings (site_id, `key`, `value`) VALUES (%s,%s,%s)", (sid, k, v))
         for i, (slug, name) in enumerate(DIMENSIONS, 1):
             db.ex("INSERT INTO keyword_dimensions (id, slug, name, rank_order) VALUES (%s,%s,%s,%s)", (i, slug, name, i))

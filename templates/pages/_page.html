@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{# 순서(기획 F5): 제목 → 고지 한 줄 → 바로 답 → 핵심 요약 → 목차 → 본문(기준 표 · 상품 카드 · 수식어 · 비교 · 관리) → 질문 → 관련 페이지 → 아래 고지 #}
+{# 순서(기획 F5): 제목 → 고지 한 줄 → 바로 답(+대표 상품 사진) → 핵심 요약 → 목차(넓은 화면은 옆에 고정) → 본문(번호 붙은 섹션) → 질문 → 관련 페이지(짙은 띠) → 아래 고지 #}
 {% block jsonld %}
 {% include "partials/jsonld/breadcrumb.html" %}
 {% if faqs %}{% include "partials/jsonld/faqpage.html" %}{% endif %}
@@ -8,42 +8,73 @@
 {% if related %}{% include "partials/jsonld/itemlist.html" %}{% endif %}
 {% endblock %}
 {% block main %}
-<article class="wrap post">
-<nav class="crumbs" aria-label="경로"><ol>{% for c in crumbs %}<li>{% if not loop.last %}<a href="{{ c.path }}">{{ c.name }}</a>{% else %}<span aria-current="page">{{ c.name }}</span>{% endif %}</li>{% endfor %}</ol></nav>
-<h1>{{ page.h1 }}</h1>
-<div class="disclose">이 글에는 네이버 쇼핑 제휴 링크가 있으며, 구매 시 수수료를 받을 수 있습니다.</div>
-{% if combo.content_updated_at %}<div class="meta">{{ author.name if author }} · {{ combo.content_updated_at.strftime("%Y-%m-%d") }} 수정</div>{% endif %}
-
-<div class="answer">{% for a in page.answer %}<p>{{ a }}</p>{% endfor %}</div>
-{% if page.points %}<div class="points"><p class="label">핵심 요약</p><ul>{% for p in page.points %}<li>{{ p }}</li>{% endfor %}</ul></div>{% endif %}
+{% set is_group = combo.page_type == "group_hub" %}
+{% set lead = (offers_main | selectattr("image") | first) if not is_group else none %}
+<div class="hero{% if is_group %} hero-home{% endif %}"><div class="wrap wide hero-grid{% if lead %} has-lead{% endif %}">
+  <div class="hero-text">
+    {% if not is_group %}<nav class="crumbs" aria-label="경로"><ol>{% for c in crumbs %}<li>{% if not loop.last %}<a href="{{ c.path }}">{{ c.name }}</a>{% else %}<span aria-current="page">{{ c.name }}</span>{% endif %}</li>{% endfor %}</ol></nav>
+    {% else %}<p class="kicker">{{ site.group_name }} 가전 · 종류 {{ kinds|length }}가지</p>{% endif %}
+    <h1>{{ page.h1 }}</h1>
+    <div class="disclose">이 글에는 네이버 쇼핑 제휴 링크가 있으며, 구매 시 수수료를 받을 수 있습니다.</div>
+    {% if combo.content_updated_at and not is_group %}<div class="meta">{{ author.name if author }} · {{ combo.content_updated_at.strftime("%Y-%m-%d") }} 수정</div>{% endif %}
+    <div class="answer">{% for a in page.answer %}<p>{{ a }}</p>{% endfor %}</div>
+  </div>
+  {% if lead %}<figure class="pick">
+    <a href="/go/{{ lead.id }}?p={{ combo.id }}&amp;s=lead" rel="sponsored nofollow noopener" target="_blank">
+      <img src="{{ lead.image }}" alt="{{ lead.name }}" fetchpriority="high" decoding="async" referrerpolicy="no-referrer" width="480" height="480">
+      <span class="ad">광고</span>
+    </a>
+    <figcaption><span>{{ lead.advertiser }}</span>{{ lead.name }}</figcaption>
+  </figure>{% endif %}
+</div></div>
 
 {% set heads = page.sections | selectattr("h2") | list %}
-{% if heads|length >= 3 %}<nav class="toc" aria-label="목차"><p class="label">목차</p><ol>{% for s in heads %}<li><a href="#{{ s.id }}">{{ s.h2 }}</a></li>{% endfor %}{% if faqs %}<li><a href="#faq">자주 묻는 질문</a></li>{% endif %}</ol></nav>{% endif %}
+<div class="wrap wide layout{% if heads|length >= 3 %} has-toc{% endif %}">
+{% if heads|length >= 3 %}<nav class="toc" aria-label="목차"><p class="label">이 글의 순서</p><ol>{% for s in heads %}<li><a href="#{{ s.id }}">{{ s.h2 }}</a></li>{% endfor %}{% if faqs %}<li><a href="#faq">자주 묻는 질문</a></li>{% endif %}</ol></nav>{% endif %}
+<article class="post">
+{% if page.points %}<div class="points"><p class="label">핵심 요약</p><ol>{% for p in page.points %}<li>{{ p }}</li>{% endfor %}</ol></div>{% endif %}
 
 {% for s in page.sections %}
-<section id="{{ s.id }}">
-  <h2>{{ s.h2 }}</h2>
+<section id="{{ s.id }}" class="sec sec-{{ s.type }}">
+  <div class="sh"><span class="sh-no">{{ "%02d" % loop.index }}</span><h2>{{ s.h2 }}</h2></div>
   {% if s.type == "p" %}{% for t in s["items"] if t %}<p>{{ t }}</p>{% endfor %}
-  {% elif s.type == "terms" %}{% for t in s["items"] %}<h3>{{ t.term }}</h3><p>{{ t.text }}</p>{% endfor %}
-  {% elif s.type == "list" %}<ul class="plain">{% for t in s["items"] %}<li>{{ t }}</li>{% endfor %}</ul>
+  {% elif s.type == "terms" %}{% for t in s["items"] %}<div class="term"><h3>{{ t.term }}</h3><p>{{ t.text }}</p></div>{% endfor %}
+  {% elif s.type == "list" %}<ol class="steps">{% for t in s["items"] %}<li>{{ t }}</li>{% endfor %}</ol>
   {% elif s.type == "table" %}<div class="tbl"><table><thead><tr>{% for h in s.head %}<th scope="col">{{ h }}</th>{% endfor %}</tr></thead>
     <tbody>{% for r in s.rows %}<tr><th scope="row">{{ r[0] }}</th><td>{{ r[1] }}</td><td>{{ r[2] }}</td></tr>{% endfor %}</tbody></table></div>
-  {% elif s.type == "methods" %}<dl class="methods">{% for m in s["items"] %}<div><dt>{{ m.name }}</dt><dd><b>장점</b> {{ m.pros }}</dd><dd><b>단점</b> {{ m.cons }}</dd><dd><b>맞는 경우</b> {{ m.fit }}</dd></div>{% endfor %}</dl>
-  {% elif s.type == "kinds" %}<ul class="links">{% for k in kinds %}<li><a href="{{ k.url_path }}">{{ k.primary_keyword }}</a></li>{% endfor %}</ul>
+  {% elif s.type == "methods" %}<div class="methods">{% for m in s["items"] %}<dl><dt>{{ m.name }}</dt><div><dd class="k">장점</dd><dd>{{ m.pros }}</dd></div><div><dd class="k">단점</dd><dd>{{ m.cons }}</dd></div><div class="fit"><dd class="k">맞는 경우</dd><dd>{{ m.fit }}</dd></div></dl>{% endfor %}</div>
+  {% elif s.type == "posts" %}<ul class="postlist">{% for p in posts %}<li><a href="{{ p.url_path }}">
+    <img src="{{ p|og_card }}" alt="{{ p.h1 or p.primary_keyword }}" width="240" height="126" loading="lazy">
+    <span class="pl-body"><span class="pl-cat">{{ p.label }}</span><strong>{{ p.h1 or p.primary_keyword }}</strong>{% if p.meta_description %}<span class="pl-desc">{{ p.meta_description }}</span>{% endif %}{% if p.published_at %}<time datetime="{{ p.published_at.strftime('%Y-%m-%d') }}">{{ p.published_at.strftime('%Y.%m.%d') }}</time>{% endif %}</span>
+  </a></li>{% endfor %}</ul>
+  {% elif s.type == "kinds" %}{% for k in kinds %}<article class="feat{% if loop.index is even %} flip{% endif %}">
+    <a class="feat-img" href="{{ k.url_path }}">{% if k.image %}<img src="{{ k.image }}" alt="{{ k.name }}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="640" height="400">{% else %}<img src="{{ k|og_card }}" alt="{{ k.h1 or k.primary_keyword }}" loading="lazy" width="1200" height="630">{% endif %}</a>
+    <div class="feat-body">
+      <h3><a href="{{ k.url_path }}">{{ k.h1 or k.primary_keyword }}</a></h3>
+      {% if k.meta_description %}<p>{{ k.meta_description }}</p>{% endif %}
+      {% if k.topics %}<ul class="feat-topics">{% for t in k.topics %}<li><a href="{{ t.url_path }}">{{ t.primary_keyword }}</a></li>{% endfor %}</ul>{% endif %}
+      <a class="tlink" href="{{ k.url_path }}">{{ k.name }} 가이드 전체 보기</a>
+    </div>
+  </article>{% endfor %}
   {% elif s.type == "offers" %}{% set offers = offers_main %}{% set slot = "cards" %}{% include "partials/offer_cards.html" %}
   {% endif %}
 </section>
 {% endfor %}
 
-{% if faqs %}<section id="faq"><h2>자주 묻는 질문</h2>
-{% for f in faqs %}<details><summary>{{ f.question }}</summary><p>{{ f.answer }}</p></details>{% endfor %}</section>{% endif %}
+{% if faqs %}<section id="faq" class="sec faq"><div class="sh"><span class="sh-no">Q</span><h2>자주 묻는 질문</h2></div>
+{% for f in faqs %}<details><summary>{{ f.question }}<i aria-hidden="true"></i></summary><p>{{ f.answer }}</p></details>{% endfor %}</section>{% endif %}
+</article>
+</div>
 
-{% set seen = namespace(urls=[combo.url_path] + (kinds | map(attribute="url_path") | list)) %}
+{% set seen = namespace(urls=[combo.url_path] + (kinds | map(attribute="url_path") | list), any=false) %}
+{% set groups = [] %}
 {% for group, label in [("children", "세부 안내"), ("core", vertical.name ~ " 핵심 안내"), ("siblings", "비슷한 조건"), ("parent", "상위 안내")] %}
 {% set items = [] %}{% for l in links[group] if l.url_path not in seen.urls %}{% set _ = items.append(l) %}{% set seen.urls = seen.urls + [l.url_path] %}{% endfor %}
-{% if items %}<section class="related"><h2>{{ label }}</h2><ul class="links">{% for l in items %}<li><a href="{{ l.url_path }}">{{ l.anchor or l.primary_keyword }}</a></li>{% endfor %}</ul></section>{% endif %}
+{% if items %}{% set _ = groups.append((label, items)) %}{% endif %}
 {% endfor %}
+{% if groups %}<section class="related"><div class="wrap wide"><div class="rel-grid">
+{% for label, items in groups %}<div><h2>{{ label }}</h2><ul>{% for l in items %}<li><a href="{{ l.url_path }}">{{ l.anchor or l.primary_keyword }}</a></li>{% endfor %}</ul></div>{% endfor %}
+</div></div></section>{% endif %}
 
-<div class="disclose foot-note">상품 링크는 네이버 쇼핑 제휴 링크(광고)입니다. 가격·할인·재고·배송은 판매처에서 확인하세요. <a href="/광고고지/">광고 고지</a> · <a href="/편집기준/">편집 기준</a></div>
-</article>
+<div class="wrap wide"><div class="disclose foot-note">상품 링크는 네이버 쇼핑 제휴 링크(광고)입니다. 가격·할인·재고·배송은 판매처에서 확인하세요. <a href="/광고고지/">광고 고지</a> · <a href="/편집기준/">편집 기준</a></div></div>
 {% endblock %}

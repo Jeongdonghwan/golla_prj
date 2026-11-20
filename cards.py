@@ -19,7 +19,7 @@ MODS = json.loads((ROOT / "data" / "modifiers.json").read_text("utf-8"))
 AXES = ("space", "persona", "situation", "feature", "price", "brand")
 NEED = {"summary": str, "hub_intro": list, "points": list, "first_sentences": list, "title_templates": list, "criteria": list,
         "methods": list, "care": list, "mistakes": list, "checks": list, "faqs": list, "mods": dict, "intents": dict, "posts": list}
-MIN_LEN = {"hub_intro": 3, "points": 4, "first_sentences": 6, "title_templates": 6, "criteria": 7, "methods": 2, "care": 4,
+MIN_LEN = {"hub_intro": 3, "points": 4, "first_sentences": 6, "title_templates": 10, "criteria": 7, "methods": 2, "care": 4,
            "mistakes": 3, "checks": 3, "faqs": 10, "posts": 2}
 
 

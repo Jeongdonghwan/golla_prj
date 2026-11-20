@@ -24,7 +24,7 @@ for r in rows:
     t = a.get_data(as_text=True)
     assert a.status_code == 200, (r, a.status_code)
     assert "이 글에는 네이버 쇼핑 제휴 링크가 있으며, 구매 시 수수료를 받을 수 있습니다" in t, r
-    assert '<p class="ad">광고</p>' in t and 'rel="sponsored nofollow noopener" target="_blank"' in t, r
+    assert '<span class="ad">광고</span>' in t and 'rel="sponsored nofollow noopener" target="_blank"' in t, r
     body = re.sub(r"<[^>]+>", " ", t.split("<main>")[1].split("</main>")[0])
     assert not re.search(r"\d{1,3}(,\d{3})+\s*원|평점\s*\d|리뷰\s*[\d,]+", body), (r, re.findall(r".{20}\d{1,3}(?:,\d{3})+\s*원.{5}", body)[:2])
     strip = lambda x: re.sub(r'<ul class="offers">.*?</ul>', "", x, flags=re.S)  # noqa: E731

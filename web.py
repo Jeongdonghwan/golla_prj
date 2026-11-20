@@ -8,7 +8,7 @@ from urllib.parse import quote
 
 from flask import Blueprint, Response, abort, current_app, g, redirect, render_template, request
 
-from db import ops, queries as dbq
+from db import js, ops, queries as dbq
 from engine import abs_url, render_combo, shown_offers, site_base
 
 web_bp = Blueprint("web", __name__)
@@ -203,6 +203,19 @@ def robots():
 @seo_bp.get("/apple-touch-icon-precomposed.png")
 def root_icons():  # 없으면 /<path>/ 라우트가 잡아 끝 슬래시 리다이렉트 → 404
     return redirect("/static/favicon.png", 301)
+
+
+@seo_bp.get("/og/c/<int:cid>.webp")
+def og_card(cid):
+    """페이지별 OG 카드(og.py, cpa_prj c3 디자인). 공개된 그 사이트 페이지만. 처음 요청될 때 그린다."""
+    from flask import send_file
+    from og import card_file
+    s, combo = site(), dbq.combo(cid)
+    if not combo or combo["site_id"] != s["id"] or combo["status"] not in ("published", "noindex"):
+        abort(404)
+    v = dbq.vertical(combo["vertical_id"]) if combo["vertical_id"] else None
+    f = card_file(combo, v["name"] if v else s["group_name"], f"{s['name']} {s['group_name']}", js(dbq.settings(s["id"]).get("theme"), {}))
+    return send_file(f, mimetype="image/webp", max_age=30 * 86400)
 
 
 @seo_bp.get("/llms.txt")

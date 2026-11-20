@@ -9,6 +9,7 @@ from urllib.parse import quote
 from flask import current_app, g, render_template
 
 import composer
+from og import card_path
 import products
 from db import js, ops, queries as dbq
 
@@ -63,6 +64,9 @@ def select_offers(site, combo, slot, n, vertical=None):
         return ranked(tops)[:n]
     cands = products.kind_offers(vertical)
     match = [o for o in cands if tags and tags <= set(js(o["tags"], []))]
+    if combo["page_type"] == "versus":  # 방식 차이: 상품명에 두 방식 이름(낱말)이 들어간 상품 먼저
+        words = {w for w in re.split(r"[\s·]+", combo["primary_keyword"].replace(vertical["name"], "")) if len(w) >= 2 and w != "차이"}
+        match = [o for o in cands if any(w in o["name"] for w in words)]
     seen = {o["id"] for o in match}
     out = ranked(match) + ranked([o for o in cands if o["id"] not in seen])
     if len(out) < n:  # 모자라면 같은 상품군의 형제 종류(같은 부모)로 채운다 — 빈 페이지 없음
@@ -71,6 +75,21 @@ def select_offers(site, combo, slot, n, vertical=None):
         have = {o["id"] for o in out}
         out += ranked([o for v in sib for o in products.kind_offers(v) if o["id"] not in have])
     return out[:n]
+
+
+def offer_pick(offer, combo, card):
+    """상품별 추천 글: 상품명에서 뽑은 특징·브랜드 태그 → 그 종류 카드의 수식어 문장(사실 문장, 이미 린트 통과).
+    페이지 조건과 맞는 특징을 먼저. 페이지·상품마다 시드가 달라 같은 상품도 페이지마다 다른 문장이 나온다."""
+    tags = js(offer["tags"], [])
+    mods = (card or {}).get("mods", {})
+    page = set(combo_tags(combo))
+    feats = sorted((t for t in tags if t in mods.get("feature", {})), key=lambda t: t not in page)
+    brand = next((t[1:] for t in tags if t.startswith("@") and t[1:] in mods.get("brand", {})), None)
+    rng = random.Random(f"{combo['id']}|{offer['id']}|pick")
+    say = [rng.choice(mods["feature"][f]) for f in feats[:2]]
+    if brand:
+        say.append(rng.choice(mods["brand"][brand]))
+    return {"feats": feats[:4], "say": say[:3]}
 
 
 def offer_reason(offer, combo):
@@ -113,15 +132,28 @@ def assemble(site, combo):
     built = composer.compose(combo, vertical, site, (js(content["blocks"], {}) or {}).get("v", 0) if content["model"] == "assembled" else 0)
     if not built:
         return None
-    page = dbq.page(combo["id"])
     n = CARD_COUNT_HUB if combo["page_type"] in HUB_TYPES else CARD_COUNT
     offers = select_offers(site, combo, "cards", n, vertical)
+    vs = dbq.verticals(site["id"])
+    names = {v["id"]: v["name"] for v in vs}
+    cards = {v["id"]: js(v["card"], {}) for v in vs}
     for o in offers:
         o["reason"] = offer_reason(o, combo)
-    kinds = [k for k in dbq.published(site["id"], ("kind_hub",))] if combo["page_type"] == "group_hub" else []
-    ctx = {"combo": combo, "content": content, "page": built, "blocks": built["sections"], "vertical": vertical, "kinds": kinds,
+        o["kind"] = names.get(o["vertical_id"], "")
+        o["pick"] = offer_pick(o, combo, cards.get(o["vertical_id"]))
+    kinds, posts = [], []
+    if combo["page_type"] == "group_hub":  # 메인(블로그형): 종류별 가이드(상품 사진 또는 OG 카드 + 설명 + A등급 하위 글) · 최근 글
+        by_id = {v["id"]: v for v in vs}
+        for k in dbq.published_with_text(site["id"], ("kind_hub",), 200):
+            imgs = sorted((o for o in products.kind_offers(by_id[k["vertical_id"]]) if o["image"]), key=lambda o: -float(o["score"])) if k["vertical_id"] in by_id else []
+            kinds.append({**k, "name": names.get(k["vertical_id"], k["primary_keyword"]), "image": imgs[0]["image"] if imgs else "",
+                          "topics": dbq.kind_core(k, 8)})
+        posts = dbq.published_rec(site["id"], 12)  # 판매 의도 페이지(A등급 키워드 페이지, 종류마다 하나씩)
+        for p in posts:
+            p["label"] = names.get(p["vertical_id"], "") + " 추천"
+    ctx = {"combo": combo, "content": content, "page": built, "blocks": built["sections"], "vertical": vertical, "kinds": kinds, "posts": posts,
            "offers_main": offers, "links": _links(combo), "crumbs": _crumbs(combo),
-           "author": ops.default_author(), "og_image": page and page["og_image_path"], "faqs": built["faqs"],
+           "author": ops.default_author(), "og_image": card_path(combo), "faqs": built["faqs"],
            "canonical": abs_url(combo["url_path"]), "title": built["title"], "description": built["meta"]}
     ctx["robots"] = "noindex,follow" if combo["status"] == "noindex" or not offers else None
     return ctx

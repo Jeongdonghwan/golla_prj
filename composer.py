@@ -84,6 +84,8 @@ def compose(combo, vertical, site, v=0):
         out = _post(combo, card)
     elif t == "versus":
         out = _vs(combo, card, kw, vertical["name"])
+    elif t == "search":
+        out = _search(combo, card, kw)
     else:
         out = _mod(combo, card, kw)
     if out:
@@ -184,6 +186,25 @@ def _vs(combo, card, kw, kind):
     ans = [f"{_jo(la, '은', '는')} {_fit_end(a['fit'])}", f"{_jo(lb, '은', '는')} {_fit_end(b['fit'])}"]
     return {"h1": h1, "meta": _fit(" ".join(ans) + f" {kw}, 장단점과 추천 상품까지 정리했어요."), "answer": ans,
             "points": _pick(card["points"], 3, r("pt")), "sections": secs, "faqs": _faqs(_pick(card["faqs"], 5, r("faq")))}
+
+
+def _search(combo, card, kw):
+    """실제 검색 키워드 페이지: 추천 상품(상품명에 그 말이 든 것 먼저) + 그 말 설명 3문장 + 기준 4 + 방식 1 + 관리 + 질문 5."""
+    it = next((x for x in card.get("search", []) if x["kw"] == kw), None)
+    if not it:
+        return None
+    r = lambda part: _rng(combo, part)  # noqa: E731
+    first = r("first").choice(card["first_sentences"]).format(kw=kw)
+    secs = [{"id": "offers", "h2": _h2("offers", combo, kw), "type": "offers"},
+            {"id": "mods", "h2": _h2("mods", combo, kw), "type": "terms", "items": [{"term": it["term"], "text": " ".join(it["sents"])}]},
+            {"id": "criteria", "h2": _h2("criteria", combo, kw), **_criteria(_pick(card["criteria"], 4, r("crit")))}]
+    if len(card["methods"]) >= 3:
+        secs.append({"id": "methods", "h2": _h2("methods", combo, kw), "type": "methods", "items": _pick(card["methods"], 1, r("meth"))})
+    secs.append({"id": "care", "h2": _h2("care", combo, kw), "type": "list",
+                 "items": _pick(card["care"], 2, r("care")) + _pick(card["mistakes"], 1, r("mis")) + _pick(card["checks"], 1, r("chk"))})
+    return {"h1": r("title").choice(REC_TITLES).format(kw=kw), "meta": _fit(first + " " + it["sents"][0]),
+            "answer": [first, it["sents"][0]], "points": _pick(card["points"], 3, r("pt")), "sections": secs,
+            "faqs": _faqs(_pick(card["faqs"], 5, r("faq")))}
 
 
 def _post(combo, card):

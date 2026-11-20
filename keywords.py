@@ -6,6 +6,7 @@
       D  수식어 3개(공간·대상×특징×가격대)
 우선순위 = 등급 + 계절(난방·공기 상품군) + 종류 평균 수수료. 새로 만든 페이지는 기존 대기열 뒤에(같은 점수면 id 순).
 차이  B  방식 두 개 비교(카드 methods 쌍): /{종류}/{방식}-{방식}-차이/
+검색  A/B 실제 검색 키워드(card.search — 네이버 검색광고 연관 키워드, 월 1,000+ = A): /{종류}/{말}/  조합하지 않는다
 주소: /{종류}/ · /{종류}/{수식어}/ · /{종류}/{수식어}-{수식어}/ · /{종류}/qna/{슬러그}/ · 상품군 허브는 메인(/).
 """
 import json
@@ -114,6 +115,8 @@ def build_kind(v, hub_parent):
                         f"{root}/{products.slugify(ta)}-{products.slugify(tb)}-{products.slugify(tc)}/", pair_ids[(a, ta, b, tb)], "D")
     for p in card.get("posts", []):
         add("question", [], f"{root}/qna/{p['slug']}/", hub, "B", kw=p["title"])
+    for it in card.get("search", []):
+        add("search", [], f"{root}/{products.slugify(it['term'])}/", hub, "A" if it.get("monthly", 0) >= 1000 else "B", kw=it["kw"])
     for _i, _j, kw, slug in vs_pairs(card, v["name"]):  # 방식 차이(비교 검색어) — 판매 의도가 높아 B
         add("versus", [], f"{root}/{slug}/", hub, "B", kw=kw)
     return made

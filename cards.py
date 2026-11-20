@@ -15,6 +15,7 @@ from engine import lint
 
 ROOT = Path(__file__).parent
 CARD_DIR = ROOT / "content" / "cards"
+SEARCH_DIR = ROOT / "content" / "search"   # 실제 검색 키워드 페이지 문장(scripts/kw_research.py → 세션 작성). 카드 적재 때 card["search"] 로 합친다
 MODS = json.loads((ROOT / "data" / "modifiers.json").read_text("utf-8"))
 AXES = ("space", "persona", "situation", "feature", "price", "brand")
 NEED = {"summary": str, "hub_intro": list, "points": list, "first_sentences": list, "title_templates": list, "criteria": list,
@@ -60,6 +61,14 @@ def _texts(card):
     return out
 
 
+def with_search(slug, card):
+    """content/search/<slug>.json 의 items 를 card["search"] 로 붙인다(없으면 그대로)."""
+    p = SEARCH_DIR / f"{slug}.json"
+    if p.exists():
+        card = {**card, "search": json.loads(p.read_text("utf-8-sig")).get("items", [])}
+    return card
+
+
 def validate(card, inp):
     """카드 점검. 문제 목록(빈 목록 = 통과)."""
     errs = []
@@ -89,6 +98,13 @@ def validate(card, inp):
     for p in card["posts"]:
         if not all(p.get(k) for k in ("slug", "title", "question", "answer", "sections")) or not re.fullmatch(r"[0-9a-z가-힣-]+", p["slug"]):
             errs.append(f"posts 형식: {p.get('slug')}")
+    seen = set()
+    for it in card.get("search", []):
+        if not (it.get("kw") and it.get("term") and isinstance(it.get("sents"), list) and len(it["sents"]) >= 3):
+            errs.append(f"search 형식: {it.get('kw')}")
+        elif products.slugify(it["term"]) in seen:
+            errs.append(f"search 중복: {it['term']}")
+        seen.add(products.slugify(it.get("term", "")))
     lr = lint(" ".join(_texts(card)))
     if not lr["ok"]:
         errs.append(f"린트: {lr}")

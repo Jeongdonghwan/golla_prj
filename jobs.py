@@ -379,7 +379,7 @@ def cards_load(check, only):
         if not path.exists() or (only and v["slug"] not in only.split(",")):
             continue
         try:
-            card = json.loads(path.read_text("utf-8-sig"))
+            card = cards.with_search(v["slug"], json.loads(path.read_text("utf-8-sig")))
         except ValueError as e:
             click.echo(f"✗ {v['slug']}: JSON 오류 {e}")
             bad += 1

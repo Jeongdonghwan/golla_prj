@@ -64,7 +64,7 @@ def select_offers(site, combo, slot, n, vertical=None):
         return ranked(tops)[:n]
     cands = products.kind_offers(vertical)
     match = [o for o in cands if tags and tags <= set(js(o["tags"], []))]
-    if combo["page_type"] == "versus":  # 방식 차이: 상품명에 두 방식 이름(낱말)이 들어간 상품 먼저
+    if combo["page_type"] in ("versus", "search"):  # 방식 차이·검색 키워드: 상품명에 그 낱말이 들어간 상품 먼저
         words = {w for w in re.split(r"[\s·]+", combo["primary_keyword"].replace(vertical["name"], "")) if len(w) >= 2 and w != "차이"}
         match = [o for o in cands if any(w in o["name"] for w in words)]
     seen = {o["id"] for o in match}

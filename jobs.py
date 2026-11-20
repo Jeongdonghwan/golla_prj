@@ -283,7 +283,8 @@ def indexnow_send(site, post=post_json):
     code = post("https://api.indexnow.org/indexnow", {
         "host": host, "key": site["indexnow_key"], "keyLocation": abs_url(f"/{site['indexnow_key']}.txt"),
         "urlList": sorted({r["url"] for r in rows})})
-    ops.indexnow_mark([r["id"] for r in rows], code)
+    if code in (200, 202):  # 실패(403 키 확인 전 등)는 큐에 남겨 다음 실행 때 다시 보낸다
+        ops.indexnow_mark([r["id"] for r in rows], code)
     return len(rows), code
 
 

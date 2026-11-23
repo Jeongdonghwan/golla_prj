@@ -5,6 +5,7 @@
  ② 같은 종류(주제) 페이지끼리 같은 문장 비율 — 종류마다 표본 per 쪽, 쌍마다 A 의 문장 글자 중 B 에도 그대로 있는 비율(dup_measure 와 같은 방식,
     단위는 화면 요소: h1·h2·dl 칸·질문은 통째로, 문단·답은 문장으로). 전체 쌍 평균 · 종류별 평균의 최댓값 · 쌍 최댓값.
  ③ 조사 오류 — 기준·방식 이름 바로 뒤 은/는·이/가·을/를·과/와 가 받침과 맞는지, '을를' 같은 자리표시
+ ⑤ description 45~80자·중복, 키워드 든 h2 수(요약·절·FAQ, 4개 이상)
  ④ 번호 절 문단 길이 · 키워드가 통째로 든 h2 수 · 본문 글자(공백 제외) · title 이 저장값과 같은지
 --html 폴더: 사이트마다 2쪽을 템플릿으로 렌더해 저장(engine.assemble + render_template — render_combo 를 거치지 않아 DB 쓰기 없음).
 """
@@ -81,6 +82,7 @@ def main():
         conts = {r["combo_id"]: r for r in q("""SELECT pc.combo_id, pc.blocks, pc.model, pc.title FROM page_contents pc JOIN keyword_combos k
                                                 ON k.id=pc.combo_id AND pc.version=k.content_version WHERE k.status='published'""")}
         h1s, per_site, by_kind = collections.Counter(), collections.Counter(), collections.defaultdict(list)
+        descs, dlen, h2kw, h2same = collections.Counter(), [], [], collections.Counter()
         title_diff, errs, plens, kwh2, chars = [], [], [], [], []
         for c in rows:
             ct = conts.get(c["id"])
@@ -91,6 +93,11 @@ def main():
             host = sites[c["site_id"]]["host"]
             per_site[host] += 1
             h1s[(host, pg["h1kw"] + " " + pg["h1sub"])] += 1
+            descs[(host, pg["meta"])] += 1
+            dlen.append(len(pg["meta"]))
+            hs = [pg["summary"]["h2"]] + [s["h2"] for s in pg["sections"]] + [pg["faq_h2"]]
+            h2kw.append(sum(1 for h in hs if pg["h1kw"] in h))
+            h2same["|".join(hs)] += 1
             if ct and ct["title"] and ct["title"] != pg["title"]:
                 title_diff.append(c["id"])
             card = js(verts[c["vertical_id"]]["card"], {})
@@ -113,6 +120,8 @@ def main():
         kinds.sort(reverse=True)
         print("키워드 페이지", dict(per_site), "합계", sum(per_site.values()))
         print("h1 중복", len(dup), dup[:5])
+        print("description 길이 %d~%d · 45~80 밖 %d쪽 · 중복 %d" % (min(dlen), max(dlen), sum(1 for x in dlen if not 45 <= x <= 80), sum(1 for n in descs.values() if n > 1)))
+        print("키워드 든 h2(요약·절·FAQ) 최소 %d 평균 %.1f · h2 묶음이 통째로 같은 페이지 %d" % (min(h2kw), statistics.mean(h2kw), sum(n for n in h2same.values() if n > 1)))
         print("title 이 저장값과 다른 쪽", len(title_diff), title_diff[:8])
         print("조사 오류", len(errs), collections.Counter(errs).most_common(5))
         print("같은 종류끼리 같은 문장: 쌍 평균 %.1f%% · 종류별 평균 최대 %.1f%% (%s %s) · 쌍 최대 %.1f%%" % (

@@ -123,7 +123,14 @@ def h1sub(combo, kw, crit, methods):
     return _rng(combo, "h1sub").choice(ok) if ok else ""
 
 
-def _ray(combo, kw, h1, meta, lead, summary, dl, first, crit, methods, care, faqs, h1_crit=None):
+def desc(kw, items, tails):
+    """description 45~80자(§5-3): 키워드 — 비교 기준(관련 키워드) 문장 + 방식·상품 문장. 넘치면 기준 수를 줄이고, 그래도 넘치면 뒤 문장을 뺀다."""
+    tries = [(k, t) for t in tails + [""] for k in (3, 2, 1) if len(items) >= k]
+    outs = [f"{kw} — {'·'.join(items[:k])} 기준으로 고르는 법." + (" " + t if t else "") for k, t in tries]
+    return next((d for d in outs if 45 <= len(d) <= 80), next((d for d in outs if len(d) <= 80), outs[-1] if outs else kw))
+
+
+def _ray(combo, kw, h1, meta, lead, summary, dl, first, crit, methods, care, faqs, h1_crit=None, tails=None):
     """first = (h2 변형 목록 or None, 문단). crit 4행 → 절 2·3, methods → 절 4, care(관리 2·실수 1·안전 1) → 절 5·6."""
     r = lambda part: _rng(combo, part)  # noqa: E731
     secs = [{"id": "offers", "h2": _h2("offers", combo, kw), "type": "offers"}]
@@ -147,7 +154,9 @@ def _ray(combo, kw, h1, meta, lead, summary, dl, first, crit, methods, care, faq
         if h.startswith(kw) and h[len(kw):len(kw) + 1] == ",":  # "{kw}, …" 꼴은 쉼표 대신 쌍점으로 통일하지 않는다(벌 그대로)
             pass
         secs.append({"id": f"s{i + 1}", "h2": h, "type": "p", "num": i + 1, "items": [text]})
-    return {"h1": h1, "h1kw": kw, "h1sub": h1sub(combo, kw, h1_crit or crit, methods or []), "meta": meta,
+    names = [m["name"] for m in methods or []]
+    tails = (tails or []) + ([f"{'·'.join(names[:2])} 차이와 추천 상품 비교." if len(names) > 1 else f"{names[0]} 장단점과 추천 상품 비교."] if names else []) + ["추천 상품까지 비교."]
+    return {"h1": h1, "h1kw": kw, "h1sub": h1sub(combo, kw, h1_crit or crit, methods or []), "meta": desc(kw, [r["item"] for r in crit], tails),
             "answer": [_kwjosa(lead, kw)], "points": [], "ray": True,
             "summary": {"h2": f"{kw} 핵심 요약", "text": " ".join(_sent(t) for t in summary), "dl": [d for d in dl if d[1]]},
             "faq_h2": f"{kw} 자주 묻는 질문", "sections": secs, "faqs": faqs}
@@ -269,7 +278,7 @@ def _vs(combo, card, kw, kind):
                [("종류", kind), ("비교", f"{la}·{lb}"), ("비교 기준", "·".join(x["item"] for x in crit)),
                 ("다른 방식", "·".join(m["name"] for m in rest))],
                ([f"{kw}: {_jo(la, '과', '와')} {lb}의 장단점", f"{kw} — 두 방식 나란히 보기", f"{kw}: 장단점과 맞는 경우"], first_p),
-               crit, rest, care, _faqs(_pick(card["faqs"], 4, r("faq"))), h1_crit=crit)
+               crit, rest, care, _faqs(_pick(card["faqs"], 4, r("faq"))), h1_crit=crit, tails=["두 방식 장단점과 추천 상품 비교."])
     out["h1sub"] = h1sub(combo, kw, crit, [])  # 방식 이름은 키워드에 이미 있다
     return out
 

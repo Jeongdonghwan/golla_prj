@@ -14,10 +14,12 @@
   <div class="hero-text">
     {% if not is_group %}<nav class="crumbs" aria-label="경로"><ol>{% for c in crumbs %}<li>{% if not loop.last %}<a href="{{ c.path }}">{{ c.name }}</a>{% else %}<span aria-current="page">{{ c.name }}</span>{% endif %}</li>{% endfor %}</ol></nav>
     {% else %}<p class="kicker">{{ site.group_name }} 가전 · 종류 {{ kinds|length }}가지</p>{% endif %}
-    <h1>{{ page.h1 }}</h1>
+    {% if page.ray %}<p class="kicker">{{ vertical.name }}{% if site.group_name %} · {{ site.group_name }}{% endif %}</p>
+    <h1><span>{{ page.h1kw }}</span>{% if page.h1sub %} <span class="hero-sub">{{ page.h1sub }}</span>{% endif %}</h1>
+    {% else %}<h1>{{ page.h1 }}</h1>{% endif %}
     <div class="disclose">광고 · 이 글에는 네이버 쇼핑 제휴 링크가 있으며, 구매 시 수수료를 받을 수 있습니다.</div>
     {% if combo.content_updated_at and not is_group %}<div class="meta">{{ author.name if author }} · {{ combo.content_updated_at.strftime("%Y-%m-%d") }} 수정</div>{% endif %}
-    <div class="answer">{% for a in page.answer %}<p>{{ a }}</p>{% endfor %}</div>
+    {% if page.ray %}<p class="lead">{{ page.answer[0] }}</p>{% else %}<div class="answer">{% for a in page.answer %}<p>{{ a }}</p>{% endfor %}</div>{% endif %}
   </div>
   {% if lead %}<figure class="pick">
     <a href="/go/{{ lead.id }}?p={{ combo.id }}&amp;s=lead" rel="sponsored nofollow noopener" target="_blank">
@@ -29,13 +31,15 @@
 
 {% set heads = page.sections | selectattr("h2") | list %}
 <div class="wrap wide layout{% if heads|length >= 3 %} has-toc{% endif %}">
-{% if heads|length >= 3 %}<nav class="toc" aria-label="목차"><p class="label">이 글의 순서</p><ol>{% for s in heads %}<li><a href="#{{ s.id }}">{{ s.h2 }}</a></li>{% endfor %}{% if faqs %}<li><a href="#faq">자주 묻는 질문</a></li>{% endif %}</ol></nav>{% endif %}
+{% if heads|length >= 3 %}<nav class="toc" aria-label="목차"><p class="label">이 글의 순서</p><ol>{% if page.ray %}<li><a href="#sum">{{ page.summary.h2 }}</a></li>{% endif %}{% for s in heads %}<li><a href="#{{ s.id }}">{{ s.h2 }}</a></li>{% endfor %}{% if faqs %}<li><a href="#faq">{{ page.faq_h2 or "자주 묻는 질문" }}</a></li>{% endif %}</ol></nav>{% endif %}
 <article class="post">
+{% if page.ray %}<section id="sum" class="sumbox"><h2>{{ page.summary.h2 }}</h2><p>{{ page.summary.text }}</p>
+  <dl>{% for k, v in page.summary.dl %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}</dl></section>{% endif %}
 {% if page.points %}<div class="points"><p class="label">핵심 요약</p><ol>{% for p in page.points %}<li>{{ p }}</li>{% endfor %}</ol></div>{% endif %}
 
 {% for s in page.sections %}
 <section id="{{ s.id }}" class="sec sec-{{ s.type }}">
-  <div class="sh"><span class="sh-no">{{ "%02d" % loop.index }}</span><h2>{{ s.h2 }}</h2></div>
+  <div class="sh"><span class="sh-no">{% if page.ray %}{{ "%02d" % s.num if s.num else "" }}{% else %}{{ "%02d" % loop.index }}{% endif %}</span><h2>{{ s.h2 }}</h2></div>
   {% if s.type == "p" %}{% for t in s["items"] if t %}<p>{{ t }}</p>{% endfor %}
   {% elif s.type == "terms" %}{% for t in s["items"] %}<div class="term"><h3>{{ t.term }}</h3><p>{{ t.text }}</p></div>{% endfor %}
   {% elif s.type == "list" %}<ol class="steps">{% for t in s["items"] %}<li>{{ t }}</li>{% endfor %}</ol>
@@ -60,16 +64,16 @@
 </section>
 {% endfor %}
 
-{% if faqs %}<section id="faq" class="sec faq"><div class="sh"><span class="sh-no">Q</span><h2>자주 묻는 질문</h2></div>
+{% if faqs %}<section id="faq" class="sec faq"><div class="sh"><span class="sh-no">Q</span><h2>{{ page.faq_h2 or "자주 묻는 질문" }}</h2></div>
 {% for f in faqs %}<details><summary>{{ f.question }}<i aria-hidden="true"></i></summary><p>{{ f.answer }}</p></details>{% endfor %}</section>{% endif %}
 </article>
 </div>
 
-{% set seen = namespace(urls=[combo.url_path] + (kinds | map(attribute="url_path") | list), any=false) %}
+{% set seen = namespace(urls=[combo.url_path] + (kinds | map(attribute="url_path") | list), any=false, n=0) %}{# 레이 구조 페이지: 관련 링크 최대 3묶음·15개 #}
 {% set groups = [] %}
 {% for group, label in [("children", "세부 안내"), ("core", vertical.name ~ " 핵심 안내"), ("siblings", "비슷한 조건"), ("parent", "상위 안내")] %}
-{% set items = [] %}{% for l in links[group] if l.url_path not in seen.urls %}{% set _ = items.append(l) %}{% set seen.urls = seen.urls + [l.url_path] %}{% endfor %}
-{% if items %}{% set _ = groups.append((label, items)) %}{% endif %}
+{% set items = [] %}{% for l in links[group] if l.url_path not in seen.urls and (not page.ray or (groups|length < 3 and seen.n + items|length < 15)) %}{% set _ = items.append(l) %}{% set seen.urls = seen.urls + [l.url_path] %}{% endfor %}
+{% if items %}{% set _ = groups.append((label, items)) %}{% set seen.n = seen.n + items|length %}{% endif %}
 {% endfor %}
 {% if groups %}<section class="related"><div class="wrap wide"><div class="rel-grid">
 {% for label, items in groups %}<div><h2>{{ label }}</h2><ul>{% for l in items %}<li><a href="{{ l.url_path }}">{{ l.anchor or l.primary_keyword }}</a></li>{% endfor %}</ul></div>{% endfor %}

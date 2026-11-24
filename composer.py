@@ -119,8 +119,13 @@ def h1sub(combo, kw, crit, methods):
         cands.append(([items[2]], f"{items[2]} 확인부터 관리까지"))
     if len(items) >= 4:
         cands.append(([items[1], items[3]], f"{items[1]}·{_jo(items[3], '으로', '로')} 좁히기"))
-    ok = [t for w, t in cands if _fresh(w, kw)] or [t for _w, t in cands]
-    return _rng(combo, "h1sub").choice(ok) if ok else ""
+    # title = "{kw} {수식어} | 상호" 라서 키워드+수식어 40자(상호 포함 60자) 안에 드는 벌만. 다 넘치면 기준 하나짜리 짧은 벌, 그래도 넘치면 수식어 없음
+    room = combo.get("_lim", 40) - len(kw) - 1
+    for pool in (cands, [([x], f"{x}부터 비교") for x in items]):
+        ok = [t for w, t in pool if _fresh(w, kw) and len(t) <= room] or [t for _w, t in pool if len(t) <= room]
+        if ok:
+            return _rng(combo, "h1sub").choice(ok)
+    return ""
 
 
 def desc(kw, items, tails):
@@ -168,7 +173,7 @@ def _faqs(items):
 
 def compose(combo, vertical, site, v=0):
     """→ {h1, title, meta, answer[], points[], sections[], faqs[]}"""
-    combo = {**combo, "_v": v or 0}
+    combo = {**combo, "_v": v or 0, "_lim": min(40, 60 - len(site["title_sep"]) - len(site["name"]))}
     t = combo["page_type"]
     card = js(vertical["card"], {})
     kw = combo["primary_keyword"]
@@ -186,8 +191,9 @@ def compose(combo, vertical, site, v=0):
         out = _search(combo, card, kw)
     else:
         out = _mod(combo, card, kw)
-    if out:
-        out["title"] = f"{out['h1']}{site['title_sep']}{site['name']}"
+    if out:  # 키워드 페이지 title 앞부분 = h1 글자 그대로(키워드 + 수식어), 상호는 끝에 한 번(2026-11-24)
+        head = f"{out['h1kw']} {out['h1sub']}".strip() if out.get("ray") else out["h1"]
+        out["title"] = f"{head}{site['title_sep']}{site['name']}"
     return out
 
 

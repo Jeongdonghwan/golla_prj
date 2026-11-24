@@ -55,3 +55,4 @@
 - 상품은 CSV 가 아니라 API 자동 수집(coupang.py, `jobs coupang-sync|collect|export|import`). offers.ext_id = `cp:<상품번호>`, url = 딥링크 짧은 주소(subId = 사이트 라벨), advertiser = '쿠팡'. CSV 교체(import_csv)는 쿠팡 상품을 건드리지 않는다.
 - 고지 문구는 쿠팡 지정 문장("이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.") — 위·아래에만. 본문에 '가전'·판매처 이름을 쓰지 않는다. 식품·건강식품·화장품·유아용품은 효능 단정 금지(prompts/card_coupang.md).
 - 종류 547개(data/coupang_kinds.json) 중 1차 74개 카드 작성. 나머지는 검색수 순(keywords/coupang_kind_volume.csv)으로 이어 쓴다.
+- 보강 2차(2026-11-24): 쿠팡 173종 `cards_more` + 전 종류 FAQ 답 보강(`cards_more.faqs`, composer.compose 끝에서 답 뒤에 붙임) + 같은 문장 30% 초과 9종 카드 항목 덧붙임. 측정(ray_check --files, 12개 사이트 18,464쪽): 본문 평균 1,982자(사이트별 1,915~2,030) · 1,800자 미만 6.2% · 같은 문장 쌍 평균 27.9% · 30% 초과 0종. 새 카드는 카드 + 보강(criteria·methods·care·mistakes·checks·axes·faqs)을 같이 쓴다(prompts/card_agent.md · cards_more.md · cards_more_faq.md). 푸시 전 `scripts/py310_check.py`(서버 3.10 문법) 필수.

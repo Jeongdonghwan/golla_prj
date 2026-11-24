@@ -200,6 +200,9 @@ def compose(combo, vertical, site, v=0):
         out = _search(combo, card, kw)
     else:
         out = _mod(combo, card, kw)
+    add = (card or {}).get("more", {}).get("faqs", {}) if t != "group_hub" else {}
+    if out and add:  # FAQ 답 뒤 보강 한 문장(content/cards_more 의 faqs: {질문: 덧붙임}, 2026-11-24)
+        out["faqs"] = [{**f, "answer": f"{f['answer']} {add[f['question']]}"} if f["question"] in add else f for f in out.get("faqs", [])]
     if out:  # 키워드 페이지 title 앞부분 = h1 글자 그대로(키워드 + 수식어), 상호는 끝에 한 번(2026-11-24)
         head = f"{out['h1kw']} {out['h1sub']}".strip() if out.get("ray") else out["h1"]
         full = f"{head}{site['title_sep']}{site['name']}"

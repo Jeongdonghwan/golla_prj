@@ -149,7 +149,7 @@ def main():
         print("조사 오류", len(errs), collections.Counter(errs).most_common(5))
         print("같은 종류끼리 같은 문장: 쌍 평균 %.1f%% · 종류별 평균 최대 %.1f%% (%s %s) · 쌍 최대 %.1f%%" % (
             100 * statistics.mean(allv), 100 * kinds[0][0], kinds[0][2], kinds[0][3], 100 * max(allv)))
-        print("  종류별 평균 상위", [(h.split(".")[0], n, round(100 * m, 1)) for m, _x, h, n in kinds[:6]])
+        print("  종류별 평균 30% 초과", [(h.split(".")[0], n, round(100 * m, 1)) for m, _x, h, n in kinds if m > 0.30])
         sp = sorted(plens)
         print("카드 보강(more) 있는 쪽 %d · 없는 쪽 %d — 아래 분량은 있는 쪽만(공백 제외)" % (moreless[True], moreless[False]))
         if sp:

@@ -109,6 +109,10 @@ def validate(card, inp):
         elif products.slugify(it["term"]) in seen:
             errs.append(f"search 중복: {it['term']}")
         seen.add(products.slugify(it.get("term", "")))
+    qs = {f["q"] for f in card["faqs"]}
+    stray = [q for q in card.get("more", {}).get("faqs", {}) if q not in qs]
+    if stray:
+        errs.append(f"보강 faqs 키가 카드 질문과 다름 {len(stray)}개: {stray[0][:30]}")
     lr = lint(" ".join(_texts(card)))
     if not lr["ok"]:
         errs.append(f"린트: {lr}")

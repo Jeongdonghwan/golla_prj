@@ -6,7 +6,7 @@
     단위는 화면 요소: h1·h2·dl 칸·질문은 통째로, 문단·답은 문장으로). 전체 쌍 평균 · 종류별 평균의 최댓값 · 쌍 최댓값.
  ③ 조사 오류 — 기준·방식 이름 바로 뒤 은/는·이/가·을/를·과/와 가 받침과 맞는지, '을를' 같은 자리표시
  ⑤ description 45~80자·중복, 키워드 든 h2 수(요약·절·FAQ, 4개 이상)
- ④ 번호 절 문단 길이 · 키워드가 통째로 든 h2 수 · 본문 글자(공백 제외) · title = 'h1 글자(키워드+수식어) | 상호' · 중복 0 · 앞 40자·전체 60자
+ ④ 번호 절 문단 길이 · 키워드가 통째로 든 h2 수 · 본문 글자(공백 제외) · title = 'h1 글자(키워드+수식어) | 상호' (40자 넘으면 상호 뺌) · 중복 0 · 전체 40자 이하
 --html 폴더: 사이트마다 2쪽을 템플릿으로 렌더해 저장(engine.assemble + render_template — render_combo 를 거치지 않아 DB 쓰기 없음).
 """
 import argparse
@@ -84,7 +84,7 @@ def main():
         h1s, per_site, by_kind = collections.Counter(), collections.Counter(), collections.defaultdict(list)
         descs, dlen, h2kw, h2same = collections.Counter(), [], [], collections.Counter()
         errs, plens, kwh2, chars = [], [], [], []
-        titles, tlen, title_bad, nosub = collections.Counter(), [], [], 0
+        titles, tlen, title_bad, nosub, branded = collections.Counter(), [], [], 0, 0
         for c in rows:
             ct = conts.get(c["id"])
             v = (js(ct["blocks"], {}) or {}).get("v", 0) if ct and ct["model"] == "assembled" else 0
@@ -103,8 +103,10 @@ def main():
             head = f"{pg['h1kw']} {pg['h1sub']}".strip()
             titles[(host, pg["title"])] += 1
             tlen.append(len(pg["title"]))
-            if pg["title"] != head + site["title_sep"] + site["name"] or len(head) > 40 or len(pg["title"]) > 60:
+            full = head + site["title_sep"] + site["name"]
+            if pg["title"] != (full if len(full) <= 40 else head) or len(pg["title"]) > 40:
                 title_bad.append(c["id"])
+            branded += pg["title"] == full
             nosub += not pg["h1sub"]
             card = js(verts[c["vertical_id"]]["card"], {})
             words = [x["item"] for x in card.get("criteria", [])] + [m["name"] for m in card.get("methods", [])]
@@ -128,8 +130,8 @@ def main():
         print("h1 중복", len(dup), dup[:5])
         print("description 길이 %d~%d · 45~80 밖 %d쪽 · 중복 %d" % (min(dlen), max(dlen), sum(1 for x in dlen if not 45 <= x <= 80), sum(1 for n in descs.values() if n > 1)))
         print("키워드 든 h2(요약·절·FAQ) 최소 %d 평균 %.1f · h2 묶음이 통째로 같은 페이지 %d" % (min(h2kw), statistics.mean(h2kw), sum(n for n in h2same.values() if n > 1)))
-        print("title 중복 %d · 길이 %d~%d · 'h1 글자 | 상호' 꼴·앞 40자·전체 60자 어긴 쪽 %d · 수식어 없는 쪽(키워드가 길어서) %d" % (
-            sum(1 for n in titles.values() if n > 1), min(tlen), max(tlen), len(title_bad), nosub))
+        print("title 중복 %d · 길이 %d~%d · 앞부분==h1·전체 40자 어긴 쪽 %d · 상호 붙은 쪽 %d · 상호 뺀 쪽 %d · 수식어 없는 쪽 %d" % (
+            sum(1 for n in titles.values() if n > 1), min(tlen), max(tlen), len(title_bad), branded, len(tlen) - branded, nosub))
         print("조사 오류", len(errs), collections.Counter(errs).most_common(5))
         print("같은 종류끼리 같은 문장: 쌍 평균 %.1f%% · 종류별 평균 최대 %.1f%% (%s %s) · 쌍 최대 %.1f%%" % (
             100 * statistics.mean(allv), 100 * kinds[0][0], kinds[0][2], kinds[0][3], 100 * max(allv)))

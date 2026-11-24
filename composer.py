@@ -127,7 +127,7 @@ def h1sub(combo, kw, crit, methods):
     if len(items) >= 3:
         cands.append(([items[2]], f"{items[2]} 확인부터 관리까지"))
     if len(items) >= 4:
-        cands.append(([items[1], items[3]], f"{items[1]}·{_jo(items[3], '으로', '로')} 좁히기"))
+        cands.append(([items[1], items[3]], f"{items[1]}·{items[3]} 체크 포인트"))
     # title = "{kw} {수식어} | 상호" 라서 키워드+수식어 40자 안에 드는 벌만. 다 넘치면 기준 하나짜리 짧은 벌, 그래도 넘치면 수식어 없음
     room = combo.get("_lim", 40) - len(kw) - 1
     for pool in (cands, [([x], f"{x}부터 비교") for x in items]):

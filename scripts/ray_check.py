@@ -93,6 +93,7 @@ def main():
         h1s, per_site, by_kind = collections.Counter(), collections.Counter(), collections.defaultdict(list)
         descs, dlen, h2kw, h2same = collections.Counter(), [], [], collections.Counter()
         errs, plens, kwh2, chars = [], [], [], []
+        site_chars = collections.defaultdict(list)
         titles, tlen, title_bad, nosub, branded = collections.Counter(), [], [], 0, 0
         for c in rows:
             ct = conts.get(c["id"])
@@ -126,6 +127,7 @@ def main():
             if has_more:  # 분량 기준(본문 1,800자+, 절 문단 200~260자, 공백 제외)은 카드 보강이 끝난 종류에만 잰다
                 plens += [len(p.replace(" ", "")) for p in ps]
                 chars.append(len("".join(units(pg)).replace(" ", "")))
+                site_chars[host].append(chars[-1])
             kwh2.append(sum(1 for s in pg["sections"] if s["type"] == "p" and s["h2"].startswith(pg["h1kw"])))
             by_kind[(host, verts[c["vertical_id"]]["name"])].append(pg)
         rnd, allv, kinds = random.Random(3), [], []
@@ -154,6 +156,8 @@ def main():
             print("번호 절 문단 글자 평균 %d · 중앙 %d · 10%%~90%% %d~%d · 200자 미만 %.0f%%" % (
                 statistics.mean(sp), statistics.median(sp), sp[len(sp) // 10], sp[len(sp) * 9 // 10], 100 * sum(1 for x in sp if x < 200) / len(sp)))
             print("본문 글자 평균 %d · 최소 %d · 1,800자 미만 %.1f%%" % (statistics.mean(chars), min(chars), 100 * sum(1 for x in chars if x < 1800) / len(chars)))
+            for h, xs in site_chars.items():  # 사이트별(네이버 7 · 쿠팡 5 를 따로 본다)
+                print("  %-22s 본문 평균 %d · 최소 %d · 1,800자 미만 %.1f%%" % (h, statistics.mean(xs), min(xs), 100 * sum(1 for x in xs if x < 1800) / len(xs)))
         print("키워드 통째로 든 h2(번호 절) 평균 %.2f" % statistics.mean(kwh2))
         if a.html:
             from flask import render_template

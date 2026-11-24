@@ -216,3 +216,12 @@ h1 .hero-sub{display:block;margin-top:.35em;font-size:.46em;font-weight:600;line
 .sumbox dt{font-family:var(--mono);font-size:.74rem;letter-spacing:.06em;color:var(--muted);margin:0 0 2px}
 .sumbox dd{margin:0;font-weight:600;font-size:.95rem;line-height:1.55}
 @media(max-width:560px){.sumbox dl{grid-template-columns:1fr}}
+/* 머리 부분 정리(2026-11-24 사용자 지적): 분류 줄 강조색 · 제목 크게 · 수식어 줄은 진한 글자 + 강조색 선 · 수정일·광고 고지는 한 묶음으로 작게 */
+.hero .kicker{color:var(--accent);font-weight:700;margin:0 0 10px}
+.hero h1{font-size:clamp(1.9rem,5vw,2.75rem);margin:0 0 16px}
+h1 .hero-sub{margin-top:.55em;padding-left:.7em;border-left:3px solid var(--accent);font-size:.5em;font-weight:700;color:var(--ink-2)}
+.hero-foot{display:flex;flex-wrap:wrap;gap:2px 12px;align-items:baseline;font-size:.74rem;line-height:1.55;color:var(--muted)}
+.hero-foot .meta,.hero-foot .disclose{font-size:inherit;margin:0}
+.hero .kicker,.hero-foot .meta{font-family:inherit;letter-spacing:0}
+/* 한글 라벨은 본문 글꼴로(고정폭+자간이 한글을 띄엄띄엄 보이게 함). 숫자 번호만 고정폭 유지 */
+.kicker,.meta,.label,thead th,.methods .k,.ph i,.offers .why span,.related h2,.sumbox dt{font-family:inherit;letter-spacing:0}

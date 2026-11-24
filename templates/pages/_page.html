@@ -17,8 +17,7 @@
     {% if page.ray %}<p class="kicker">{{ vertical.name }}{% if site.group_name %} · {{ site.group_name }}{% endif %}</p>
     <h1><span>{{ page.h1kw }}</span>{% if page.h1sub %} <span class="hero-sub">{{ page.h1sub }}</span>{% endif %}</h1>
     {% else %}<h1>{{ page.h1 }}</h1>{% endif %}
-    <div class="disclose">광고 · {{ disclose }}</div>
-    {% if combo.content_updated_at and not is_group %}<div class="meta">{{ author.name if author }} · {{ combo.content_updated_at.strftime("%Y-%m-%d") }} 수정</div>{% endif %}
+    <div class="hero-foot">{% if combo.content_updated_at and not is_group %}<span class="meta">{{ author.name if author }} · {{ combo.content_updated_at.strftime("%Y-%m-%d") }} 수정</span>{% endif %}<span class="disclose">광고 · {{ disclose }}</span></div>
     {% if page.ray %}<p class="lead">{{ page.answer[0] }}</p>{% else %}<div class="answer">{% for a in page.answer %}<p>{{ a }}</p>{% endfor %}</div>{% endif %}
   </div>
   {% if lead %}<figure class="pick">

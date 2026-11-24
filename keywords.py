@@ -72,8 +72,9 @@ def _insert(site_id, v, page_type, mods, url, parent, grade, prio, kw=None):
 
 
 def group_hub(site):
+    cp = q1("SELECT 1 x FROM site_settings WHERE site_id=%s AND `key`='network' AND `value`='coupang'", (site["id"],))
     cid, _n = _insert(site["id"], q1("SELECT * FROM verticals WHERE site_id=%s ORDER BY id LIMIT 1", (site["id"],)), "group_hub", [], "/",
-                      None, "A", 1000, kw=f"{site['group_name']} {'용품' if q1("SELECT 1 x FROM site_settings WHERE site_id=%s AND `key`='network' AND `value`='coupang'", (site['id'],)) else '가전'} 고르는 기준")
+                      None, "A", 1000, kw=f"{site['group_name']} {'용품' if cp else '가전'} 고르는 기준")
     return cid
 
 

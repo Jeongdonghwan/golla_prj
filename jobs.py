@@ -95,7 +95,8 @@ def coupang_collect(calls, delay):
     """쿠팡 상품 수집: 대기열에서 오래된 검색어부터. 한도 오류가 나면 멈추고 다음 실행 때 이어서 돈다."""
     import coupang
     done, added = coupang.collect(calls, delay, click.echo)
-    click.echo(f"쿠팡 수집: 검색어 {done} · 새 상품 {added} · 쿠팡 상품 합계 {db.q1("SELECT COUNT(*) n FROM offers WHERE ext_id IS NOT NULL AND status='active'")['n']}")
+    total = db.q1("SELECT COUNT(*) n FROM offers WHERE ext_id IS NOT NULL AND status='active'")["n"]
+    click.echo(f"쿠팡 수집: 검색어 {done} · 새 상품 {added} · 쿠팡 상품 합계 {total}")
 
 
 @jobs_cli.command("products-unclassified")

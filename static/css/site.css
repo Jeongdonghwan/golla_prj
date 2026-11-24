@@ -237,3 +237,10 @@ h1 .hero-sub{margin-top:.55em;padding-left:.7em;border-left:3px solid var(--acce
   .layout{padding-top:18px}.sumbox dl{grid-template-columns:1fr 1fr;gap:0 16px}}
 @media(max-width:700px){ol.offers>li{grid-template-columns:96px minmax(0,1fr);gap:12px;padding:14px 0}.btn{padding:8px;font-size:.84rem}}
 @media(max-width:1000px){.toc details>summary{justify-content:flex-start}.toc details>summary span{margin-left:6px}.toc details>summary::after{margin-left:auto}}
+/* 첫 화면 후킹(2026-11-24): 제목 아래 이 페이지의 조건·볼 기준 + 상품 바로 가기, 상품마다 맞는 점 굵게 */
+.hero-hook{margin:14px 0 0;display:flex;flex-direction:column;gap:2px;font-size:.92rem;line-height:1.55}
+.hero-hook p{margin:0}.hero-hook b{color:var(--accent);margin-right:6px}
+.hero-hook .jump{align-self:flex-start;margin-top:10px;font-weight:700;font-size:.9rem;color:var(--ink);text-decoration:none;border-bottom:2px solid var(--accent);padding-bottom:1px}
+.hero-hook .jump::after{content:" ↓"}
+.offers .why{font-size:.9rem;margin:0 0 8px}.offers .why b{font-weight:700;color:var(--ink)}
+@media(max-width:860px){.hero-hook{font-size:.86rem;margin-top:10px}}

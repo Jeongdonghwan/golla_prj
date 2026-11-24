@@ -19,7 +19,8 @@
     <h1><span>{{ page.h1kw }}</span>{% if page.h1sub %} <span class="hero-sub">{{ page.h1sub }}</span>{% endif %}</h1>
     {% else %}<h1>{{ page.h1 }}</h1>{% endif %}
     <div class="hero-foot">{% if combo.content_updated_at and not is_group %}<span class="meta">{{ author.name if author }} · {{ combo.content_updated_at.strftime("%Y-%m-%d") }} 수정</span>{% endif %}<span class="disclose">광고 · {{ disclose }}</span></div>
-    {% if page.ray %}<p class="lead">{{ page.answer[0] }}</p>{% else %}<div class="answer">{% for a in page.answer %}<p>{{ a }}</p>{% endfor %}</div>{% endif %}
+    {% if page.ray %}<p class="lead">{{ page.answer[0] }}</p>
+    {% set dl = dict(page.summary.dl) %}<div class="hero-hook">{% for k in [page.summary.dl[1][0] if page.summary.dl|length > 1 else "", "비교 기준"] if k and dl.get(k) and k != "종류" and dl[k] not in page.h1kw %}<p><b>{{ "볼 기준" if k == "비교 기준" else k }}</b> {{ dl[k] }}</p>{% endfor %}{% if offers_main %}<a class="jump" href="#offers">추천 상품 {{ offers_main|length }}개 바로 보기</a>{% endif %}</div>{% else %}<div class="answer">{% for a in page.answer %}<p>{{ a }}</p>{% endfor %}</div>{% endif %}
   </div>
   {% if lead %}<figure class="pick">
     <a href="/go/{{ lead.id }}?p={{ combo.id }}&amp;s=lead" rel="sponsored nofollow noopener" target="_blank">

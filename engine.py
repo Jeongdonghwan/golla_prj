@@ -92,9 +92,15 @@ def offer_pick(offer, combo, card):
     return {"feats": feats[:4], "say": say[:3]}
 
 
-def offer_reason(offer, combo):
-    """상품 카드의 '이 페이지 조건과 맞는 이유' — 상품명에서 뽑은 태그 중 페이지 태그와 겹치는 것."""
+def offer_reason(offer, combo, card=None):
+    """상품 카드의 '이 조건과 맞는 점': ① 상품 태그 중 페이지 조건과 겹치는 것 → ② 없으면 상품명에 그대로 적힌
+    카드 특징·기준 낱말(사실 — 상품명에 있는 말만). 둘 다 없으면 빈 값(2026-11-24: 쿠팡 상품 대부분이 비어 보완)."""
     hit = [t for t in combo_tags(combo) if t in js(offer["tags"], [])]
+    if not hit and card:
+        name = offer["name"].replace(" ", "")
+        words = list((card.get("mods", {}).get("feature") or {})) + [c["item"] for c in card.get("criteria", [])]
+        hit = [w for w in dict.fromkeys(words) if len(w) >= 2 and w.replace(" ", "") in name]
+        hit = [w for w in hit if not any(w != x and w in x for x in hit)][:3]   # '용량'·'대용량' 이면 긴 쪽만
     return " · ".join(hit)
 
 
@@ -138,7 +144,7 @@ def assemble(site, combo):
     names = {v["id"]: v["name"] for v in vs}
     cards = {v["id"]: js(v["card"], {}) for v in vs}
     for o in offers:
-        o["reason"] = offer_reason(o, combo)
+        o["reason"] = offer_reason(o, combo, cards.get(o["vertical_id"]))
         o["kind"] = names.get(o["vertical_id"], "")
         o["pick"] = offer_pick(o, combo, cards.get(o["vertical_id"]))
     kinds, posts = [], []

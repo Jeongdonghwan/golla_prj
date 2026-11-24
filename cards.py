@@ -15,6 +15,7 @@ from engine import lint
 
 ROOT = Path(__file__).parent
 CARD_DIR = ROOT / "content" / "cards"
+MORE_DIR = ROOT / "content" / "cards_more"   # 카드 보강 문장(세션 작성). 카드 적재 때 card["more"] 로 합친다
 SEARCH_DIR = ROOT / "content" / "search"   # 실제 검색 키워드 페이지 문장(scripts/kw_research.py → 세션 작성). 카드 적재 때 card["search"] 로 합친다
 MODS = json.loads((ROOT / "data" / "modifiers.json").read_text("utf-8"))
 AXES = ("space", "persona", "situation", "feature", "price", "brand")
@@ -66,6 +67,9 @@ def with_search(slug, card):
     p = SEARCH_DIR / f"{slug}.json"
     if p.exists():
         card = {**card, "search": json.loads(p.read_text("utf-8-sig")).get("items", [])}
+    m = MORE_DIR / f"{slug}.json"  # 카드 보강(2026-11-24): 기준·방식·관리 문장 뒤 덧붙임과 축 문장 — 조합기 _ray 가 절 문단을 채울 때 쓴다
+    if m.exists():
+        card = {**card, "more": json.loads(m.read_text("utf-8-sig"))}
     return card
 
 

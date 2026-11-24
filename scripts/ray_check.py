@@ -24,7 +24,7 @@ from app import create_app  # noqa: E402
 from db import js, q  # noqa: E402
 
 SENT = re.compile(r"(?<=[.?!])\s+")
-PLACEHOLDER = re.compile(r"을를|를을|은는|는은|과와|와과|\(으\)로|\(이\)|\(가\)|\{[a-z]+\}")
+PLACEHOLDER = re.compile(r"을를|를을|\(으\)로|\(이\)|\(가\)|\{[a-z]+\}")  # '치과와'·'효과와' 는 정상이라 과와·는은 은 뺐다
 
 
 def units(pg):
@@ -72,12 +72,21 @@ def pair_ratio(docs):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--per", type=int, default=30)
+    ap.add_argument("--files", action="store_true", help="DB 의 카드 대신 content/cards(+search·cards_more) 파일로 조립 — cards-load 전에 카드 보강 결과를 미리 잰다")
     ap.add_argument("--html")
     a = ap.parse_args()
     app = create_app()
     with app.app_context():
         sites = {s["id"]: s for s in q("SELECT * FROM sites")}
         verts = {v["id"]: v for v in q("SELECT * FROM verticals")}
+        if a.files:
+            import json
+            import cards
+            for v in verts.values():
+                p = cards.CARD_DIR / f"{v['slug']}.json"
+                if p.exists():
+                    v["card"] = json.dumps(cards.with_search(v["slug"], json.loads(p.read_text("utf-8-sig"))), ensure_ascii=False)
+        moreless = collections.Counter()
         rows = q("SELECT * FROM keyword_combos WHERE status='published' AND page_type IN ('kind_mod','search','versus') ORDER BY id")
         conts = {r["combo_id"]: r for r in q("""SELECT pc.combo_id, pc.blocks, pc.model, pc.title FROM page_contents pc JOIN keyword_combos k
                                                 ON k.id=pc.combo_id AND pc.version=k.content_version WHERE k.status='published'""")}
@@ -112,9 +121,12 @@ def main():
             words = [x["item"] for x in card.get("criteria", [])] + [m["name"] for m in card.get("methods", [])]
             ps = [s["items"][0] for s in pg["sections"] if s["type"] == "p"]
             errs += josa_errors(" ".join([pg["h1sub"], pg["answer"][0], pg["summary"]["text"]] + [s["h2"] for s in pg["sections"]] + ps), words + [pg["h1kw"]])
-            plens += [len(p) for p in ps]
+            has_more = bool(card.get("more"))
+            moreless[has_more] += 1
+            if has_more:  # 분량 기준(본문 1,800자+, 절 문단 200~260자, 공백 제외)은 카드 보강이 끝난 종류에만 잰다
+                plens += [len(p.replace(" ", "")) for p in ps]
+                chars.append(len("".join(units(pg)).replace(" ", "")))
             kwh2.append(sum(1 for s in pg["sections"] if s["type"] == "p" and s["h2"].startswith(pg["h1kw"])))
-            chars.append(len("".join(units(pg)).replace(" ", "")))
             by_kind[(host, verts[c["vertical_id"]]["name"])].append(pg)
         rnd, allv, kinds = random.Random(3), [], []
         for key, pgs in by_kind.items():
@@ -137,8 +149,12 @@ def main():
             100 * statistics.mean(allv), 100 * kinds[0][0], kinds[0][2], kinds[0][3], 100 * max(allv)))
         print("  종류별 평균 상위", [(h.split(".")[0], n, round(100 * m, 1)) for m, _x, h, n in kinds[:6]])
         sp = sorted(plens)
-        print("번호 절 문단 글자 평균 %d · 중앙 %d · 10%%~90%% %d~%d" % (statistics.mean(sp), statistics.median(sp), sp[len(sp) // 10], sp[len(sp) * 9 // 10]))
-        print("키워드 통째로 든 h2(번호 절) 평균 %.2f · 본문 글자 평균 %d" % (statistics.mean(kwh2), statistics.mean(chars)))
+        print("카드 보강(more) 있는 쪽 %d · 없는 쪽 %d — 아래 분량은 있는 쪽만(공백 제외)" % (moreless[True], moreless[False]))
+        if sp:
+            print("번호 절 문단 글자 평균 %d · 중앙 %d · 10%%~90%% %d~%d · 200자 미만 %.0f%%" % (
+                statistics.mean(sp), statistics.median(sp), sp[len(sp) // 10], sp[len(sp) * 9 // 10], 100 * sum(1 for x in sp if x < 200) / len(sp)))
+            print("본문 글자 평균 %d · 최소 %d · 1,800자 미만 %.1f%%" % (statistics.mean(chars), min(chars), 100 * sum(1 for x in chars if x < 1800) / len(chars)))
+        print("키워드 통째로 든 h2(번호 절) 평균 %.2f" % statistics.mean(kwh2))
         if a.html:
             from flask import render_template
             import engine

@@ -92,12 +92,21 @@ def _sent(t):
     return t if not t or t.endswith((".", "?", "!")) else t + "."
 
 
-def _crit_p(rows):
-    return " ".join(f"{_jo(r['item'], '은', '는')} {_sent(r['check'])} {_sent(r['why'])}" for r in rows)
+def _crit_p(rows, more=None):
+    more = (more or {}).get("criteria", {})
+    return " ".join(" ".join(x for x in (f"{_jo(r['item'], '은', '는')} {_sent(r['check'])} {_sent(r['why'])}", more.get(r["item"])) if x) for r in rows)
 
 
-def _meth_p(ms):
-    return " ".join(f"{_jo(m['name'], '은', '는')} {_sent(m['pros'])} 다만 {_sent(m['cons'])} {_fit_end(m['fit'])}" for m in ms)
+def _meth_p(ms, more=None):
+    more = (more or {}).get("methods", {})
+    return " ".join(" ".join(x for x in (f"{_jo(m['name'], '은', '는')} {_sent(m['pros'])} 다만 {_sent(m['cons'])} {_fit_end(m['fit'])}", more.get(m["name"])) if x) for m in ms)
+
+
+def _care_p(items, more=None):
+    """관리·실수·안전 문장마다 카드 보강(content/cards_more)의 덧붙임 문장을 바로 뒤에."""
+    more = more or {}
+    add = {**more.get("care", {}), **more.get("mistakes", {}), **more.get("checks", {})}
+    return " ".join(" ".join(x for x in (_sent(t), add.get(t)) if x) for t in items)
 
 
 def _fresh(words, kw):
@@ -135,29 +144,29 @@ def desc(kw, items, tails):
     return next((d for d in outs if 45 <= len(d) <= 80), next((d for d in outs if len(d) <= 80), outs[-1] if outs else kw))
 
 
-def _ray(combo, kw, h1, meta, lead, summary, dl, first, crit, methods, care, faqs, h1_crit=None, tails=None):
-    """first = (h2 변형 목록 or None, 문단). crit 4행 → 절 2·3, methods → 절 4, care(관리 2·실수 1·안전 1) → 절 5·6."""
+def _ray(combo, kw, h1, meta, lead, summary, dl, first, crit, methods, care, faqs, h1_crit=None, tails=None, more=None, axis=None):
+    """first = (h2 변형 목록 or None, 문단). crit 4행 → 절 2·3, methods → 절 4, care(관리 2·실수 1·안전 1) → 절 5·6.
+    more = 카드 보강(card["more"], content/cards_more/<slug>.json): 기준·방식·관리 문장 뒤 덧붙임, axis 축 문장 3개 중 2개를 첫 절 끝에."""
     r = lambda part: _rng(combo, part)  # noqa: E731
     secs = [{"id": "offers", "h2": _h2("offers", combo, kw), "type": "offers"}]
     body = []
     if first[1]:
-        body.append((first[0] or RAY_H2[0], {}, first[1]))
+        notes = _pick((more or {}).get("axes", {}).get(axis), 2, r("ax")) if axis else []
+        body.append((first[0] or RAY_H2[0], {}, " ".join([first[1]] + notes)))
     a, b = crit[:2], crit[2:4]
     if a:
         x, y = a[0]["item"], a[-1]["item"]
-        body.append((RAY_H2[1], {"a": x, "b": y, "bj": _jo(y, "은", "는")}, _crit_p(a)))
+        body.append((RAY_H2[1], {"a": x, "b": y, "bj": _jo(y, "은", "는")}, _crit_p(a, more)))
     if b:
-        body.append((RAY_H2[2], {"a": b[0]["item"], "b": b[-1]["item"]}, _crit_p(b)))
+        body.append((RAY_H2[2], {"a": b[0]["item"], "b": b[-1]["item"]}, _crit_p(b, more)))
     if methods:
-        body.append((RAY_H2[3], {"a": methods[0]["name"]}, _meth_p(methods)))
+        body.append((RAY_H2[3], {"a": methods[0]["name"]}, _meth_p(methods, more)))
     if care[:2]:
-        body.append((RAY_H2[4], {}, " ".join(_sent(t) for t in care[:2])))
+        body.append((RAY_H2[4], {}, _care_p(care[:2], more)))
     if care[2:]:
-        body.append((RAY_H2[5], {}, " ".join(_sent(t) for t in care[2:])))
+        body.append((RAY_H2[5], {}, _care_p(care[2:], more)))
     for i, (opts, f, text) in enumerate(body):
         h = r(f"rh{i}").choice(opts).format(kw=kw, **f)
-        if h.startswith(kw) and h[len(kw):len(kw) + 1] == ",":  # "{kw}, …" 꼴은 쉼표 대신 쌍점으로 통일하지 않는다(벌 그대로)
-            pass
         secs.append({"id": f"s{i + 1}", "h2": h, "type": "p", "num": i + 1, "items": [text]})
     names = [m["name"] for m in methods or []]
     tails = (tails or []) + ([f"{'·'.join(names[:2])} 차이와 추천 상품 비교." if len(names) > 1 else f"{names[0]} 장단점과 추천 상품 비교."] if names else []) + ["추천 상품까지 비교."]
@@ -247,7 +256,8 @@ def _mod(combo, card, kw):
     return _ray(combo, kw, r("title").choice(titles).format(kw=kw), _fit(first + " " + lead), first, pts,
                 [("종류", card.get("kind", "")), ("조건" if paras else "찾는 목적", terms), ("비교 기준", "·".join(x["item"] for x in crit)),
                  ("방식", "·".join(m["name"] for m in (methods or card["methods"])))],
-                (None, first_p), crit, methods, care, _faqs(_pick(card["faqs"], 4, r("faq"))))
+                (None, first_p), crit, methods, care, _faqs(_pick(card["faqs"], 4, r("faq"))),
+                more=card.get("more"), axis=ms[last][0] if last >= 0 else None)
 
 
 def _jo(w, with_b, without_b):
@@ -279,13 +289,13 @@ def _vs(combo, card, kw, kind):
     crit = _pick(card["criteria"], 4, r("crit"))
     care = _pick(card["care"], 1, r("care")) + _pick(card["mistakes"], 1, r("mis")) + _pick(card["checks"], 1, r("chk"))
     ans = [f"{_jo(la, '은', '는')} {_fit_end(a['fit'])}", f"{_jo(lb, '은', '는')} {_fit_end(b['fit'])}"]
-    first_p = _meth_p([a, b])
+    first_p = _meth_p([a, b], card.get("more"))
     out = _ray(combo, kw, h1, _fit(" ".join(ans) + f" {kw}, 장단점과 추천 상품까지 정리했어요."), ans[0],
                [ans[1]] + _pick(card["points"], 2, r("pt")),
                [("종류", kind), ("비교", f"{la}·{lb}"), ("비교 기준", "·".join(x["item"] for x in crit)),
                 ("다른 방식", "·".join(m["name"] for m in rest))],
                ([f"{kw}: {_jo(la, '과', '와')} {lb}의 장단점", f"{kw} — 두 방식 나란히 보기", f"{kw}: 장단점과 맞는 경우"], first_p),
-               crit, rest, care, _faqs(_pick(card["faqs"], 4, r("faq"))), h1_crit=crit, tails=["두 방식 장단점과 추천 상품 비교."])
+               crit, rest, care, _faqs(_pick(card["faqs"], 4, r("faq"))), h1_crit=crit, tails=["두 방식 장단점과 추천 상품 비교."], more=card.get("more"))
     out["h1sub"] = h1sub(combo, kw, crit, [])  # 방식 이름은 키워드에 이미 있다
     return out
 
@@ -304,7 +314,8 @@ def _search(combo, card, kw):
                 [it["sents"][0]] + _pick(card["points"], 3, r("pt"))[:2],
                 [("종류", card.get("kind", "")), ("검색어 뜻", it["term"]), ("비교 기준", "·".join(x["item"] for x in crit)),
                  ("방식", "·".join(m["name"] for m in (methods or card["methods"])))],
-                (None, " ".join(it["sents"])), crit, methods, care, _faqs(_pick(card["faqs"], 4, r("faq"))))
+                (None, " ".join(it["sents"])), crit, methods, care, _faqs(_pick(card["faqs"], 4, r("faq"))),
+                more=card.get("more"), axis="search")
 
 
 def _post(combo, card):

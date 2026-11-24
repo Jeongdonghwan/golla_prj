@@ -72,3 +72,15 @@ journalctl -u shopa_prj -n 40 --no-pager
 tail -40 /var/log/shopa_prj.log
 nginx -t
 ```
+
+## 쿠팡 사이트 5개 (salim·baby·style·play·office, 2026-11-24)
+
+쿠팡 파트너스 Open API 로 상품을 받는 종합 용품 사이트. 기존 7개(네이버 쇼핑 커넥트)와 종류가 겹치지 않게 나눈다 — 성과 비교용(딥링크 subId = 사이트 라벨).
+
+- 종류 목록: `data/coupang_kinds.json`(사이트 → 분야 → 종류). 종류를 덧붙이면 `jobs coupang-sync` 가 행을 만들고 수집 대기열에 들어간다.
+- 수집: `jobs coupang-collect --calls N`(검색 1회 = 상품 10개 상한, 오래된 검색어부터 순환, 카드가 있는 종류 먼저). 카드가 실리면 '수식어 종류명'이 검색어로 자동 추가된다. 서버 cron 01:00.
+- 첫 적재: 로컬에서 `jobs coupang-export` → `data/coupang_offers.json` 커밋 → 서버 05:30 `coupang-sync` → `coupang-import`(없는 상품만 추가) → `refresh`.
+- 카드: `jobs cards-input --missing` → `prompts/card.md` + `prompts/card_coupang.md` → `cards-load --check`. 쓰는 순서는 `python scripts/coupang_rank.py`(네이버 월 검색수) → `keywords/coupang_kind_volume.csv`.
+- 화면: site_settings `network=coupang` 인 사이트는 문구(용품·쿠팡 파트너스 고지)와 상단 메뉴(쿠팡 5개끼리)가 따로 나온다(web.net).
+- 서버 .env 에 `COUPANG_ACCESS_KEY` / `COUPANG_SECRET_KEY` 가 있어야 수집이 돈다(git 에 올리지 않는다).
+- 서브도메인 추가: DNS A 레코드 → `bash deploy/install.sh golrabom.kr`(다시 실행 — nginx·인증서·대시보드 수집 대상에 12개 반영).

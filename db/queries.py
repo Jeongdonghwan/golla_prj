@@ -15,6 +15,17 @@ def sites():
     return q("SELECT * FROM sites ORDER BY id")
 
 
+def coupang_ids():
+    return {r["site_id"] for r in q("SELECT site_id FROM site_settings WHERE `key`='network' AND `value`='coupang'")}
+
+
+def kind_hubs(site_id):
+    """메인의 종류 목록(분야 section 별로 묶는다. 분야가 없는 사이트는 한 묶음)."""
+    rows = published(site_id, ("kind_hub",))
+    sec = {r["id"]: r.get("section") or "" for r in q("SELECT * FROM verticals WHERE site_id=%s", (site_id,))}
+    return [{**r, "section": sec.get(r["vertical_id"], "")} for r in rows]
+
+
 def settings(site_id):
     return {r["key"]: r["value"] for r in q("SELECT `key`,`value` FROM site_settings WHERE site_id=%s", (site_id,))}
 

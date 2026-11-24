@@ -8,7 +8,7 @@ DOMAIN="${1:?도메인}"; PORT="${2:?포트}"; MODE="${3:-}"
 PROJ_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CONF=/etc/nginx/sites-available/shopa_prj
 : > "$CONF"
-for SUB in heat air clean kitchen beauty digital life; do
+for SUB in heat air clean kitchen beauty digital life salim baby style play office; do
   mkdir -p "$PROJ_DIR/export/$SUB"
   {
     echo "server {"

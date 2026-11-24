@@ -13,11 +13,11 @@
 <div class="hero{% if is_group %} hero-home{% endif %}"><div class="wrap wide hero-grid{% if lead %} has-lead{% endif %}">
   <div class="hero-text">
     {% if not is_group %}<nav class="crumbs" aria-label="경로"><ol>{% for c in crumbs %}<li>{% if not loop.last %}<a href="{{ c.path }}">{{ c.name }}</a>{% else %}<span aria-current="page">{{ c.name }}</span>{% endif %}</li>{% endfor %}</ol></nav>
-    {% else %}<p class="kicker">{{ site.group_name }} 가전 · 종류 {{ kinds|length }}가지</p>{% endif %}
+    {% else %}<p class="kicker">{{ site.group_name }} {{ goods }} · 종류 {{ kinds|length }}가지</p>{% endif %}
     {% if page.ray %}<p class="kicker">{{ vertical.name }}{% if site.group_name %} · {{ site.group_name }}{% endif %}</p>
     <h1><span>{{ page.h1kw }}</span>{% if page.h1sub %} <span class="hero-sub">{{ page.h1sub }}</span>{% endif %}</h1>
     {% else %}<h1>{{ page.h1 }}</h1>{% endif %}
-    <div class="disclose">광고 · 이 글에는 네이버 쇼핑 제휴 링크가 있으며, 구매 시 수수료를 받을 수 있습니다.</div>
+    <div class="disclose">광고 · {{ disclose }}</div>
     {% if combo.content_updated_at and not is_group %}<div class="meta">{{ author.name if author }} · {{ combo.content_updated_at.strftime("%Y-%m-%d") }} 수정</div>{% endif %}
     {% if page.ray %}<p class="lead">{{ page.answer[0] }}</p>{% else %}<div class="answer">{% for a in page.answer %}<p>{{ a }}</p>{% endfor %}</div>{% endif %}
   </div>
@@ -79,5 +79,5 @@
 {% for label, items in groups %}<div><h2>{{ label }}</h2><ul>{% for l in items %}<li><a href="{{ l.url_path }}">{{ l.anchor or l.primary_keyword }}</a></li>{% endfor %}</ul></div>{% endfor %}
 </div></div></section>{% endif %}
 
-<div class="wrap wide"><div class="disclose foot-note">상품 링크는 네이버 쇼핑 제휴 링크(광고)입니다. 가격·할인·재고·배송은 판매처에서 확인하세요. <a href="/광고고지/">광고 고지</a> · <a href="/편집기준/">편집 기준</a></div></div>
+<div class="wrap wide"><div class="disclose foot-note">상품 링크는 {{ shop_link }}(광고)입니다. 가격·할인·재고·배송은 판매처에서 확인하세요. <a href="/광고고지/">광고 고지</a> · <a href="/편집기준/">편집 기준</a></div></div>
 {% endblock %}

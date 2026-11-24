@@ -338,7 +338,7 @@ def import_csv(text, filename="upload.csv", add_only=False):
     brand_n = Counter(brand_token(p["name"]) for p in rows)
     if add_only:  # 작은 목록이라 브랜드 3개 기준을 기존 상품까지 합쳐서 센다
         brand_n += Counter(brand_token(r["name"]) for r in q("SELECT name FROM offers WHERE status='active'"))
-    existing = {r["url"]: r for r in q("SELECT id, url, name, fee, fee_extra, status, vertical_id, classified_by FROM offers")}
+    existing = {r["url"]: r for r in q("SELECT id, url, name, fee, fee_extra, status, vertical_id, classified_by FROM offers WHERE advertiser<>'쿠팡'")}   # 쿠팡 상품은 API 수집(coupang.py) — CSV 교체가 내리지 않게 뺀다
     added = changed = 0
     for p in rows:
         b = brand_token(p["name"])

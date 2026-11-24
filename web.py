@@ -25,9 +25,9 @@ STATIC_PAGES = {  # url → (템플릿, 제목)
     "/면책조항/": ("disclaimer", "면책조항"),
 }
 STATIC_DESC = {  # 고정 페이지 설명(50~160자). {name}=사이트명
-    "/about/": "{name}이(가) 어떤 사이트인지, 가전 종류별 고르는 기준을 어떻게 쓰고 고치는지, 상품 링크를 어떤 기준으로 싣는지 정리한 소개 페이지입니다.",
+    "/about/": "{name}이(가) 어떤 사이트인지, {goods} 종류별 고르는 기준을 어떻게 쓰고 고치는지, 상품 링크를 어떤 기준으로 싣는지 정리한 소개 페이지입니다.",
     "/운영사/": "{name}을(를) 운영하는 사업자의 상호, 대표자, 사업자등록번호, 주소와 연락처를 안내합니다. 운영사는 상품을 직접 팔지 않습니다.",
-    "/광고고지/": "{name}의 상품 링크는 네이버 쇼핑 제휴 링크이며 링크를 거쳐 구매하면 운영사가 수수료를 받을 수 있습니다. 광고 표시 방식을 안내합니다.",
+    "/광고고지/": "{name}의 상품 링크는 {shop_link}이며 링크를 거쳐 구매하면 운영사가 수수료를 받을 수 있습니다. 광고 표시 방식을 안내합니다.",
     "/편집기준/": "{name}의 글이 어떤 자료를 근거로 쓰이고 언제 고쳐지는지, 고르는 기준과 상품 링크를 어떻게 구분하는지 정리한 편집 기준입니다.",
     "/개인정보처리방침/": "{name}은(는) 이름·연락처를 받지 않습니다. 접속 기록과 쿠키 등 수집되는 정보의 종류와 보관 기간을 안내합니다.",
     "/이용약관/": "{name} 이용에 관한 기본 조건입니다. 사이트의 정보는 일반 안내이며 가격·재고·배송·교환은 판매처에서 확인해야 합니다.",
@@ -56,11 +56,21 @@ def is_bot():
     return not ua or bool(BOT_RE.search(ua))
 
 
+def net(s):
+    """사이트의 제휴 통로에 따른 낱말: 쿠팡 사이트(site_settings network=coupang) / 네이버 쇼핑 커넥트 사이트."""
+    cp = s["id"] in dbq.coupang_ids()
+    return {"cp": cp, "shop": "쿠팡" if cp else "네이버 쇼핑", "goods": "용품" if cp else "가전",
+            "shop_link": "쿠팡 파트너스 제휴 링크" if cp else "네이버 쇼핑 제휴 링크",
+            "disclose": "이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다." if cp
+            else "이 글에는 네이버 쇼핑 제휴 링크가 있으며, 구매 시 수수료를 받을 수 있습니다."}
+
+
 @web_bp.app_context_processor
 def inject():
     s = site()
+    n = net(s)
     return {"site": s, "settings": dbq.settings(s["id"]), "base_url": site_base(), "og_default": dbq.site_og(s["id"]),
-            "nav_sites": dbq.sites(), "static_pages": STATIC_PAGES}
+            "nav_sites": [x for x in dbq.sites() if (x["id"] in dbq.coupang_ids()) == n["cp"]], "static_pages": STATIC_PAGES, **n}
 
 
 @web_bp.before_app_request
@@ -99,14 +109,14 @@ def home():
     st = dbq.settings(s["id"])
     return render_template(
         "pages/home.html", title=st.get("home_title") or s["name"],
-        description=st.get("home_desc") or f"{s['name']}: 가전 종류별로 고르는 기준과 방식 차이, 관리법을 정리하고 네이버 쇼핑 제휴 상품을 함께 싣습니다.",
-        canonical=abs_url("/"), hubs=dbq.published(s["id"], ("group_hub",)), kinds=dbq.published(s["id"], ("kind_hub",)))
+        description=st.get("home_desc") or f"{s['name']}: {net(s)['goods']} 종류별로 고르는 기준과 방식 차이, 관리법을 정리하고 {net(s)['shop']} 제휴 상품을 함께 싣습니다.",
+        canonical=abs_url("/"), hubs=dbq.published(s["id"], ("group_hub",)), kinds=dbq.kind_hubs(s["id"]))
 
 
 def _page(template, title, url, **ctx):
     s = site()
     return render_template(template, title=f"{title}{s['title_sep']}{s['name']}", h1=title, canonical=abs_url(url),
-                           **{"description": STATIC_DESC.get(url, "{name} " + title + " 페이지입니다.").format(name=s["name"]), **ctx})
+                           **{"description": STATIC_DESC.get(url, "{name} " + title + " 페이지입니다.").format(name=s["name"], **net(s)), **ctx})
 
 
 def _special(s, url):
@@ -223,7 +233,7 @@ def llms():
     s = site()
     st = dbq.settings(s["id"])
     lines = [f"# {s['name']}", "", f"> {st.get('home_desc') or s['name']}", "",
-             "가전 종류별로 고르는 기준·방식 차이·관리법을 정리한 정보 사이트입니다. 상품 링크는 네이버 쇼핑 제휴 링크(광고)이며 가격·재고는 판매처에서 확인합니다.", "",
+             f"{net(s)['goods']} 종류별로 고르는 기준·방식 차이·관리법을 정리한 정보 사이트입니다. 상품 링크는 {net(s)['shop_link']}(광고)이며 가격·재고는 판매처에서 확인합니다.", "",
              "## 주요 안내"]
     lines += [f"- [{r['primary_keyword']}]({abs_url(r['url_path'])})" for r in dbq.published(s["id"], SITEMAP_TYPES["hub"], 60)]
     lines += ["", "## 사이트 정보", f"- [사이트 소개]({abs_url('/about/')})", f"- [광고 고지]({abs_url('/광고고지/')})",

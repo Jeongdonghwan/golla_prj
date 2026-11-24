@@ -2,6 +2,8 @@
 # 매일 05:40(같은 서버 web_jd8 빌드 03:00 · cpa_prj 05:10 과 겹치지 않게): 공개 계획대로 열기 → 사이트맵·.ops.json 갱신(대시보드가 읽음) → IndexNow
 40 5 * * * root cd /var/www/shopa_prj && ./venv/bin/flask --app app jobs publish --quiet >> /var/log/shopa_prj.log 2>&1 && ./venv/bin/flask --app app jobs export-sitemaps export >> /var/log/shopa_prj.log 2>&1 && ./venv/bin/flask --app app jobs indexnow >> /var/log/shopa_prj.log 2>&1
 # 05:30: 저장소의 새 상품(data/inbox/*.csv, 추가만)·카드 변경(새 종류·질문 글·문단 보강) 받기 → 페이지 생성·채점(새 페이지는 대기열 뒤에)
-30 5 * * * root cd /var/www/shopa_prj && git pull -q >> /var/log/shopa_prj.log 2>&1 && ./venv/bin/flask --app app jobs products-inbox >> /var/log/shopa_prj.log 2>&1; ./venv/bin/flask --app app jobs refresh >> /var/log/shopa_prj.log 2>&1; ./venv/bin/flask --app app jobs offers-thumbs >> /var/log/shopa_prj.log 2>&1
+30 5 * * * root cd /var/www/shopa_prj && git pull -q >> /var/log/shopa_prj.log 2>&1 && ./venv/bin/flask --app app jobs products-inbox >> /var/log/shopa_prj.log 2>&1; ./venv/bin/flask --app app jobs coupang-sync >> /var/log/shopa_prj.log 2>&1; ./venv/bin/flask --app app jobs coupang-import >> /var/log/shopa_prj.log 2>&1; ./venv/bin/flask --app app jobs refresh >> /var/log/shopa_prj.log 2>&1; ./venv/bin/flask --app app jobs offers-thumbs >> /var/log/shopa_prj.log 2>&1
 # 클릭 집계(하루)
 50 3 * * * root cd /var/www/shopa_prj && ./venv/bin/flask --app app jobs rollup >> /var/log/shopa_prj.log 2>&1
+# 쿠팡 상품 수집(쿠팡 사이트 5개): 01:00 부터 검색어 대기열을 오래된 것부터 300개(검색 1회 = 상품 10개). 한도 오류면 멈추고 다음 날 이어서
+0 1 * * * root cd /var/www/shopa_prj && ./venv/bin/flask --app app jobs coupang-collect --calls 300 --delay 6 >> /var/log/shopa_prj.log 2>&1

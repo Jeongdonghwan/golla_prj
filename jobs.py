@@ -66,6 +66,38 @@ def products_inbox(folder):
     click.echo(f"분류 적용 {products.apply_overrides()}개")
 
 
+@jobs_cli.command("coupang-sync")
+def coupang_sync():
+    """data/coupang_kinds.json → 쿠팡 사이트·종류 행(없는 것만)."""
+    import coupang
+    added, skipped = coupang.sync_kinds()
+    click.echo(f"새 종류 {added} · 기존 사이트와 겹쳐 건너뜀 {len(skipped)}: {', '.join(skipped)}")
+
+
+@jobs_cli.command("coupang-export")
+def coupang_export():
+    """로컬 쿠팡 상품 → data/coupang_offers.json (커밋해서 서버 첫 적재에 쓴다)."""
+    import coupang
+    click.echo(f"{coupang.dump()}개 → {coupang.DUMP}")
+
+
+@jobs_cli.command("coupang-import")
+def coupang_import():
+    """data/coupang_offers.json → 상품(없는 것만 추가)."""
+    import coupang
+    click.echo(f"쿠팡 상품 추가 {coupang.load_dump()}")
+
+
+@jobs_cli.command("coupang-collect")
+@click.option("--calls", default=200, help="이번에 돌 검색어 수(검색 1회 = 상품 10개)")
+@click.option("--delay", default=8.0, help="호출 사이 초")
+def coupang_collect(calls, delay):
+    """쿠팡 상품 수집: 대기열에서 오래된 검색어부터. 한도 오류가 나면 멈추고 다음 실행 때 이어서 돈다."""
+    import coupang
+    done, added = coupang.collect(calls, delay, click.echo)
+    click.echo(f"쿠팡 수집: 검색어 {done} · 새 상품 {added} · 쿠팡 상품 합계 {db.q1("SELECT COUNT(*) n FROM offers WHERE ext_id IS NOT NULL AND status='active'")['n']}")
+
+
 @jobs_cli.command("products-unclassified")
 @click.option("--out", default=str(ROOT / "content" / "classify" / "pending.json"))
 def products_unclassified(out):

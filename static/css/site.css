@@ -225,3 +225,15 @@ h1 .hero-sub{margin-top:.55em;padding-left:.7em;border-left:3px solid var(--acce
 .hero .kicker,.hero-foot .meta{font-family:inherit;letter-spacing:0}
 /* 한글 라벨은 본문 글꼴로(고정폭+자간이 한글을 띄엄띄엄 보이게 함). 숫자 번호만 고정폭 유지 */
 .kicker,.meta,.label,thead th,.methods .k,.ph i,.offers .why span,.related h2,.sumbox dt{font-family:inherit;letter-spacing:0}
+/* 모바일 첫 화면(2026-11-24 사용자 지적: 상품이 늦게 나옴) — 키워드 페이지는 상품이 요약보다 앞, 목차 접기, 겹치는 분류 줄·대표 사진 숨김 */
+.sh-plain{grid-template-columns:1fr}
+.toc details>summary{list-style:none;cursor:pointer;margin:0 0 8px}
+.toc details>summary::-webkit-details-marker{display:none}
+.toc details>summary span{color:var(--muted);font-weight:400}
+.sec-top{margin-top:0}
+@media(max-width:1000px){.toc{padding:0;background:none;margin-bottom:18px}.toc details{background:var(--gray);padding:12px 16px}.toc details>summary{margin:0;display:flex;justify-content:space-between;align-items:center;font-weight:700;color:var(--ink)}
+  .toc details>summary::after{content:"+";font-weight:400;color:var(--muted)}.toc details[open]>summary::after{content:"−"}.toc details[open]>summary{margin-bottom:8px}}
+@media(max-width:860px){.hero-ray .kicker{display:none}.hero-ray .pick{display:none}.hero-ray{padding:16px 0 20px}.hero-ray h1{margin-bottom:12px}.hero-ray .lead{margin-top:12px;font-size:1rem}
+  .layout{padding-top:18px}.sumbox dl{grid-template-columns:1fr 1fr;gap:0 16px}}
+@media(max-width:700px){ol.offers>li{grid-template-columns:96px minmax(0,1fr);gap:12px;padding:14px 0}.btn{padding:8px;font-size:.84rem}}
+@media(max-width:1000px){.toc details>summary{justify-content:flex-start}.toc details>summary span{margin-left:6px}.toc details>summary::after{margin-left:auto}}

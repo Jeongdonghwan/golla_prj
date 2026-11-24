@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{# 순서(기획 F5): 제목 → 고지 한 줄 → 바로 답(+대표 상품 사진) → 핵심 요약 → 목차(넓은 화면은 옆에 고정) → 본문(번호 붙은 섹션) → 질문 → 관련 페이지(짙은 띠) → 아래 고지 #}
+{# 순서: 제목 → 고지 한 줄 → 바로 답(+대표 상품 사진, 키워드 페이지는 모바일에서 숨김) → [키워드 페이지: 상품 → 핵심 요약] → 목차(넓은 화면은 옆에 고정, 모바일은 접힘) → 본문 → 질문 → 관련 → 아래 고지.
+   2026-11-24 사용자 지적: 모바일에서 상품이 너무 늦게 나온다 → 키워드 페이지는 상품을 요약보다 앞에, 목차는 접기, 중복 분류 줄·대표 사진 숨김. #}
 {% block jsonld %}
 {% include "partials/jsonld/breadcrumb.html" %}
 {% if faqs %}{% include "partials/jsonld/faqpage.html" %}{% endif %}
@@ -10,7 +11,7 @@
 {% block main %}
 {% set is_group = combo.page_type == "group_hub" %}
 {% set lead = (offers_main | selectattr("image") | first) if not is_group else none %}
-<div class="hero{% if is_group %} hero-home{% endif %}"><div class="wrap wide hero-grid{% if lead %} has-lead{% endif %}">
+<div class="hero{% if is_group %} hero-home{% endif %}{% if page.ray %} hero-ray{% endif %}"><div class="wrap wide hero-grid{% if lead %} has-lead{% endif %}">
   <div class="hero-text">
     {% if not is_group %}<nav class="crumbs" aria-label="경로"><ol>{% for c in crumbs %}<li>{% if not loop.last %}<a href="{{ c.path }}">{{ c.name }}</a>{% else %}<span aria-current="page">{{ c.name }}</span>{% endif %}</li>{% endfor %}</ol></nav>
     {% else %}<p class="kicker">{{ site.group_name }} {{ goods }} · 종류 {{ kinds|length }}가지</p>{% endif %}
@@ -30,15 +31,18 @@
 
 {% set heads = page.sections | selectattr("h2") | list %}
 <div class="wrap wide layout{% if heads|length >= 3 %} has-toc{% endif %}">
-{% if heads|length >= 3 %}<nav class="toc" aria-label="목차"><p class="label">이 글의 순서</p><ol>{% if page.ray %}<li><a href="#sum">{{ page.summary.h2 }}</a></li>{% endif %}{% for s in heads %}<li><a href="#{{ s.id }}">{{ s.h2 }}</a></li>{% endfor %}{% if faqs %}<li><a href="#faq">{{ page.faq_h2 or "자주 묻는 질문" }}</a></li>{% endif %}</ol></nav>{% endif %}
+{% set top = page.sections | selectattr("type", "equalto", "offers") | list if page.ray else [] %}
+{% if heads|length >= 3 %}<nav class="toc" aria-label="목차"><details id="toc" open><summary class="label">이 글의 순서 <span>{{ heads|length + (1 if page.ray else 0) + (1 if faqs else 0) }}</span></summary><ol>{% for s in top %}<li><a href="#{{ s.id }}">{{ s.h2 }}</a></li>{% endfor %}{% if page.ray %}<li><a href="#sum">{{ page.summary.h2 }}</a></li>{% endif %}{% for s in heads if s not in top %}<li><a href="#{{ s.id }}">{{ s.h2 }}</a></li>{% endfor %}{% if faqs %}<li><a href="#faq">{{ page.faq_h2 or "자주 묻는 질문" }}</a></li>{% endif %}</ol></details></nav>
+<script>if(matchMedia("(max-width:1000px)").matches){var t=document.getElementById("toc");if(t)t.removeAttribute("open")}</script>{% endif %}
 <article class="post">
+{% for s in top %}<section id="{{ s.id }}" class="sec sec-offers sec-top"><div class="sh sh-plain"><h2>{{ s.h2 }}</h2></div>{% set offers = offers_main %}{% set slot = "cards" %}{% include "partials/offer_cards.html" %}</section>{% endfor %}
 {% if page.ray %}<section id="sum" class="sumbox"><h2>{{ page.summary.h2 }}</h2><p>{{ page.summary.text }}</p>
   <dl>{% for k, v in page.summary.dl %}<div><dt>{{ k }}</dt><dd>{{ v }}</dd></div>{% endfor %}</dl></section>{% endif %}
 {% if page.points %}<div class="points"><p class="label">핵심 요약</p><ol>{% for p in page.points %}<li>{{ p }}</li>{% endfor %}</ol></div>{% endif %}
 
-{% for s in page.sections %}
+{% for s in page.sections if s not in top %}
 <section id="{{ s.id }}" class="sec sec-{{ s.type }}">
-  <div class="sh"><span class="sh-no">{% if page.ray %}{{ "%02d" % s.num if s.num else "" }}{% else %}{{ "%02d" % loop.index }}{% endif %}</span><h2>{{ s.h2 }}</h2></div>
+  {% set no = ("%02d" % s.num if s.num else "") if page.ray else "%02d" % loop.index %}<div class="sh{% if not no %} sh-plain{% endif %}">{% if no %}<span class="sh-no">{{ no }}</span>{% endif %}<h2>{{ s.h2 }}</h2></div>
   {% if s.type == "p" %}{% for t in s["items"] if t %}<p>{{ t }}</p>{% endfor %}
   {% elif s.type == "terms" %}{% for t in s["items"] %}<div class="term"><h3>{{ t.term }}</h3><p>{{ t.text }}</p></div>{% endfor %}
   {% elif s.type == "list" %}<ol class="steps">{% for t in s["items"] %}<li>{{ t }}</li>{% endfor %}</ol>

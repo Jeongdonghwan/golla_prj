@@ -249,3 +249,9 @@ h1 .hero-sub{margin-top:.55em;padding-left:.7em;border-left:3px solid var(--acce
 .hero-hook .jump::after{content:" ↓"}
 .offers .why{font-size:.9rem;margin:0 0 8px}.offers .why b{font-weight:700;color:var(--ink)}
 @media(max-width:860px){.hero-hook{font-size:.86rem;margin-top:10px}}
+
+@media(max-width:760px){.hero-foot .by{display:none}.crumbs ol{margin-bottom:8px;font-size:.76rem}.hero .lead{margin-top:10px}}
+/* PC 에서도 목차는 접힌 채 시작(2026-11-25) — 펼침 표시 */
+.toc details>summary{display:flex;justify-content:space-between;align-items:center;font-weight:700;color:var(--ink);border-bottom:1px solid var(--line);padding-bottom:8px}
+.toc details>summary::after{content:"+";font-weight:400;color:var(--muted)}.toc details[open]>summary::after{content:"−"}
+.toc details>summary span{margin:0 auto 0 6px}

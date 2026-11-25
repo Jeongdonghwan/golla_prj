@@ -1,3 +1,4 @@
+import re
 from . import ex, q, q1
 
 # ── 사이트 ────────────────────────────────────────────────────────────────
@@ -17,6 +18,24 @@ def sites():
 
 def coupang_ids():
     return {r["site_id"] for r in q("SELECT site_id FROM site_settings WHERE `key`='network' AND `value`='coupang'")}
+
+
+def solo_ids():
+    """다른 사이트 메뉴에 묶지 않는 독립 홈페이지(site_settings solo=1, home 가구·가전 — 사용자 결정 2026-11-25)."""
+    return {r["site_id"] for r in q("SELECT site_id FROM site_settings WHERE `key`='solo' AND `value`='1'")}
+
+
+def sections(site_id):
+    """사이트의 분야(쓰인 순서) → [(이름, 메인 안 앵커 id)]."""
+    seen = []
+    for r in q("SELECT section FROM verticals WHERE site_id=%s AND parent_id IS NULL AND is_active=1 AND section IS NOT NULL ORDER BY id", (site_id,)):
+        if r["section"] not in seen:
+            seen.append(r["section"])
+    return [(x, sec_id(x)) for x in seen]
+
+
+def sec_id(name):
+    return "k-" + re.sub(r"[^0-9a-z가-힣]+", "-", (name or "").lower()).strip("-")
 
 
 def kind_hubs(site_id):

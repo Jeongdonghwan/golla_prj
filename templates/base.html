@@ -34,6 +34,7 @@
   <a class="brand" href="/">{{ site.name }}</a>
   <nav aria-label="주 메뉴">
   {% for s in nav_sites %}<a href="https://{{ s.host }}/"{% if s.id == site.id %} aria-current="page"{% endif %}>{{ s.group_name }}</a>{% endfor %}
+  {% for name, sid in nav_secs %}<a href="/#{{ sid }}">{{ name }}</a>{% endfor %}
   <a href="/광고고지/">광고 고지</a>
   <a href="/사이트맵/">사이트맵</a>
   </nav>

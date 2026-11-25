@@ -301,9 +301,13 @@ def score_of(p):
 
 
 # ── 종류 행 ───────────────────────────────────────────────────────────────
+# 이름으로 찾는 종류는 네이버 사이트 것만 — 쿠팡 home 사이트(2026-11-25)가 냉장고 같은 같은 이름 종류를 따로 가진다
+NAVER = "site_id NOT IN (SELECT site_id FROM site_settings WHERE `key`='network' AND `value`='coupang')"
+
+
 def ensure_kinds():
     """KINDS 의 종류를 verticals 행으로(없는 것만). {종류 이름: id}"""
-    have = {r["name"]: r["id"] for r in q("SELECT id, name FROM verticals WHERE parent_id IS NULL")}
+    have = {r["name"]: r["id"] for r in q("SELECT id, name FROM verticals WHERE parent_id IS NULL AND " + NAVER)}
     for g, k, *_ in KINDS:
         if k not in have:
             slug = slugify(k)
@@ -384,10 +388,10 @@ def kind_offers(vertical):
 
 def refresh_kinds():
     """하위 종류 행을 만들고, 상품이 MIN_KIND 개 미만인 종류는 비활성(페이지 생성·공개에서 빠짐). 상품이 다시 늘면 다시 활성."""
-    parents = {r["name"]: r for r in q("SELECT * FROM verticals WHERE parent_id IS NULL")}
+    parents = {r["name"]: r for r in q("SELECT * FROM verticals WHERE parent_id IS NULL AND " + NAVER)}
     for parent, name, tags in SUBKINDS:
         pr = parents.get(parent)
-        if pr and not q1("SELECT id FROM verticals WHERE name=%s", (name,)):
+        if pr and not q1("SELECT id FROM verticals WHERE name=%s AND site_id=%s", (name, pr["site_id"])):
             slug = slugify(name)
             ex("INSERT INTO verticals (site_id, parent_id, slug, name, url_base, match_tags) VALUES (%s,%s,%s,%s,%s,%s)",
                (pr["site_id"], pr["id"], slug, name, "/" + slug, json.dumps(tags, ensure_ascii=False)))

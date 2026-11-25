@@ -91,10 +91,11 @@ def coupang_import():
 @jobs_cli.command("coupang-collect")
 @click.option("--calls", default=200, help="이번에 돌 검색어 수(검색 1회 = 상품 10개)")
 @click.option("--delay", default=8.0, help="호출 사이 초")
-def coupang_collect(calls, delay):
+@click.option("--site", default=None, help="이 사이트 라벨(home 등)의 검색어만")
+def coupang_collect(calls, delay, site):
     """쿠팡 상품 수집: 대기열에서 오래된 검색어부터. 한도 오류가 나면 멈추고 다음 실행 때 이어서 돈다."""
     import coupang
-    done, added = coupang.collect(calls, delay, click.echo)
+    done, added = coupang.collect(calls, delay, click.echo, site)
     total = db.q1("SELECT COUNT(*) n FROM offers WHERE ext_id IS NOT NULL AND status='active'")["n"]
     click.echo(f"쿠팡 수집: 검색어 {done} · 새 상품 {added} · 쿠팡 상품 합계 {total}")
 
@@ -393,9 +394,11 @@ def cards_input(missing):
     d.mkdir(parents=True, exist_ok=True)
     n = 0
     for v in db.q("SELECT * FROM verticals WHERE is_active=1 ORDER BY site_id, id"):
-        if missing and (v["card"] or (cards.CARD_DIR / f"{v['slug']}.json").exists()):
+        k = cards.key(v)
+        if missing and (v["card"] or (cards.CARD_DIR / f"{k}.json").exists()):
             continue
-        (d / f"{v['slug']}.json").write_text(json.dumps(cards.build_input(v), ensure_ascii=False, indent=1), "utf-8")
+        (d / f"{k}.json").parent.mkdir(parents=True, exist_ok=True)
+        (d / f"{k}.json").write_text(json.dumps(cards.build_input(v), ensure_ascii=False, indent=1), "utf-8")
         n += 1
     click.echo(f"{n}개 → {d}")
 
@@ -408,11 +411,12 @@ def cards_load(check, only):
     import cards
     ok = bad = 0
     for v in db.q("SELECT * FROM verticals WHERE is_active=1 ORDER BY site_id, id"):
-        path = cards.CARD_DIR / f"{v['slug']}.json"
-        if not path.exists() or (only and v["slug"] not in only.split(",")):
+        k = cards.key(v)
+        path = cards.CARD_DIR / f"{k}.json"
+        if not path.exists() or (only and k not in only.split(",")):
             continue
         try:
-            card = cards.with_search(v["slug"], json.loads(path.read_text("utf-8-sig")))
+            card = cards.with_search(k, json.loads(path.read_text("utf-8-sig")))
         except ValueError as e:
             click.echo(f"✗ {v['slug']}: JSON 오류 {e}")
             bad += 1

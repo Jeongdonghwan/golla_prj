@@ -54,7 +54,7 @@
     <img src="{{ p|og_card }}" alt="{{ p.h1 or p.primary_keyword }}" width="240" height="126" loading="lazy">
     <span class="pl-body"><span class="pl-cat">{{ p.label }}</span><strong>{{ p.h1 or p.primary_keyword }}</strong>{% if p.meta_description %}<span class="pl-desc">{{ p.meta_description }}</span>{% endif %}{% if p.published_at %}<time datetime="{{ p.published_at.strftime('%Y-%m-%d') }}">{{ p.published_at.strftime('%Y.%m.%d') }}</time>{% endif %}</span>
   </a></li>{% endfor %}</ul>
-  {% elif s.type == "kinds" %}{% for k in kinds %}<article class="feat{% if loop.index is even %} flip{% endif %}">
+  {% elif s.type == "kinds" %}{% for k in kinds %}{% if nav_secs and loop.changed(k.section) %}<h3 class="kind-sec" id="{{ k.section|sec_id }}">{{ k.section }}</h3>{% endif %}<article class="feat{% if loop.index is even %} flip{% endif %}">
     <a class="feat-img" href="{{ k.url_path }}">{% if k.image %}<img src="{{ k.image }}" alt="{{ k.name }}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="640" height="400">{% else %}<img src="{{ k|og_card }}" alt="{{ k.h1 or k.primary_keyword }}" loading="lazy" width="1200" height="630">{% endif %}</a>
     <div class="feat-body">
       <h3><a href="{{ k.url_path }}">{{ k.h1 or k.primary_keyword }}</a></h3>

@@ -84,3 +84,9 @@ nginx -t
 - 화면: site_settings `network=coupang` 인 사이트는 문구(용품·쿠팡 파트너스 고지)와 상단 메뉴(쿠팡 5개끼리)가 따로 나온다(web.net).
 - 서버 .env 에 `COUPANG_ACCESS_KEY` / `COUPANG_SECRET_KEY` 가 있어야 수집이 돈다(git 에 올리지 않는다).
 - 서브도메인 추가: DNS A 레코드 → `bash deploy/install.sh golrabom.kr`(다시 실행 — nginx·인증서·대시보드 수집 대상에 12개 반영).
+
+## home 사이트(가구·가전, 2026-11-25)
+
+- 쿠팡 6번째 사이트 home.golrabom.kr(id 13). 네이버 사이트와 같은 이름 종류(냉장고 등)를 허용 — 카드는 `content/cards/home/` 에 따로.
+- 열기: DNS 에 `home` A 레코드(211.45.175.195) → 서버에서 `cd /var/www/shopa_prj && git pull && ./venv/bin/flask --app app jobs coupang-sync && ./venv/bin/flask --app app jobs coupang-import` → `bash deploy/install.sh golrabom.kr`(nginx·인증서·대시보드 13개).
+- 수집만 따로: `./venv/bin/flask --app app jobs coupang-collect --site home --calls 60`.

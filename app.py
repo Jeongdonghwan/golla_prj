@@ -61,6 +61,8 @@ def create_app():
     app.jinja_env.filters["josa"] = _josa
     from og import card_path
     app.jinja_env.filters["og_card"] = card_path
+    from db.queries import sec_id
+    app.jinja_env.filters["sec_id"] = sec_id
     import hashlib  # CSS 주소에 내용 해시 — 배포 후 브라우저가 옛 CSS(30일 캐시)를 쓰지 않게
     app.jinja_env.globals["css_v"] = hashlib.md5(open(app.static_folder + "/css/site.css", "rb").read()).hexdigest()[:8]
 

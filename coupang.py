@@ -54,23 +54,26 @@ def site_ids():
 
 
 def sync_kinds(domain="golrabom.kr"):
-    """coupang_kinds.json → sites(설정은 1번 사이트에서 복사) · verticals. 이미 다른 사이트에 있는 종류명은 건너뛴다. (새 종류 수, 건너뛴 이름)"""
+    """coupang_kinds.json → sites(설정은 1번 사이트에서 복사) · verticals. 이미 다른 사이트에 있는 종류명은 건너뛴다(overlap 사이트는 네이버 종류명만 허용). (새 종류 수, 건너뛴 이름)"""
     import secrets
     ensure_schema()
     cfg = json.loads(KINDS_FILE.read_text("utf-8"))
     have = {r["name"]: r["site_id"] for r in q("SELECT name, site_id FROM verticals")}
+    own = {(r["name"], r["site_id"]) for r in q("SELECT name, site_id FROM verticals")}
+    cp = set(site_ids())
     added, skipped = 0, []
     for label, s in cfg.items():
         if not q1("SELECT id FROM sites WHERE id=%s", (s["id"],)):
             ex("INSERT INTO sites (id, host, name, group_name, indexnow_key) VALUES (%s,%s,%s,%s,%s)", (s["id"], f"{label}.{domain}", "골라봄", s["group"], secrets.token_hex(16)))
             ex("INSERT INTO site_settings (site_id, `key`, `value`) SELECT %s, `key`, `value` FROM site_settings WHERE site_id=1 AND `key` LIKE 'op\\_%%'", (s["id"],))
-            for k, v in (("theme", json.dumps({"accent": s["accent"]})), ("network", "coupang")):
+            for k, v in (("theme", json.dumps({"accent": s["accent"]})), ("network", "coupang")) + tuple((x, "1" if s[x] is True else s[x]) for x in ("goods", "solo") if s.get(x)):
                 ex("INSERT INTO site_settings (site_id, `key`, `value`) VALUES (%s,%s,%s)", (s["id"], k, v))
         for section, names in s["sections"].items():
             for name in names:
-                if name in have:   # 이름이 같은 종류가 이미 있으면(기존 7개 사이트 포함) 만들지 않는다
-                    if have.get(name) != s["id"]:
-                        skipped.append(name)
+                if (name, s["id"]) in own:
+                    continue
+                if name in have and (not s.get("overlap") or have[name] in cp):   # 이름이 같은 종류가 이미 있으면 만들지 않는다 — "overlap": true 사이트(home)만 네이버 종류와 겹쳐도 만든다(사용자 결정 2026-11-25). 쿠팡 사이트끼리는 안 겹친다
+                    skipped.append(name)
                     continue
                 slug = products.slugify(name)
                 ex("INSERT INTO verticals (site_id, slug, name, url_base, section, is_active) VALUES (%s,%s,%s,%s,%s,0)", (s["id"], slug, name, "/" + slug, section))
@@ -107,14 +110,16 @@ def deeplinks(urls, sub_id):
     return {d["originalUrl"]: d["shortenUrl"] for d in r.get("data") or [] if d.get("shortenUrl")}   # 링크를 못 받은 상품은 이번엔 건너뛴다
 
 
-def collect(calls=200, delay=8.0, log=print):
+def collect(calls=200, delay=8.0, log=print, site=None):
     """대기열에서 오래된 검색어부터 calls 개. 오류(한도 등)가 나면 바로 멈춘다. (돈 검색어 수, 새 상품 수)"""
     ensure_schema()
     sync_queue()
     labels = {s["id"]: label for label, s in json.loads(KINDS_FILE.read_text("utf-8")).items()}
-    rows = q("SELECT k.vertical_id, k.keyword, k.collected_at, v.site_id, v.slug FROM coupang_kw k JOIN verticals v ON v.id=k.vertical_id")
-    carded = {p.stem for p in (ROOT / "content" / "cards").glob("*.json")}   # 안 돈 검색어 → 카드가 있는 종류 → 오래된 순
-    rows = sorted(rows, key=lambda r: (r["collected_at"] is not None, r["slug"] not in carded, str(r["collected_at"]), r["vertical_id"]))[:calls]
+    rows = [r for r in q("SELECT k.vertical_id, k.keyword, k.collected_at, v.site_id, v.slug FROM coupang_kw k JOIN verticals v ON v.id=k.vertical_id")
+            if site is None or labels[r["site_id"]] == site]   # site = 라벨(home 등)만 돌릴 때
+    import cards
+    carded = {r["vertical_id"] for r in rows if (cards.CARD_DIR / f"{cards.key(r)}.json").exists()}   # 안 돈 검색어 → 카드가 있는 종류 → 오래된 순
+    rows = sorted(rows, key=lambda r: (r["collected_at"] is not None, r["vertical_id"] not in carded, str(r["collected_at"]), r["vertical_id"]))[:calls]
     done = added = 0
     touched = set()
     for row in rows:
@@ -180,7 +185,8 @@ def dump():
 def load_dump():
     """data/coupang_offers.json → offers(없는 ext_id 만 추가). 추가한 수."""
     ensure_schema()
-    kinds = {v["name"]: v["id"] for v in q("SELECT id, name FROM verticals WHERE parent_id IS NULL")}
+    ids = site_ids()
+    kinds = {v["name"]: v["id"] for v in q("SELECT id, name FROM verticals WHERE parent_id IS NULL AND site_id IN (" + ",".join(["%s"] * len(ids)) + ")", ids)}
     have = {r["ext_id"] for r in q("SELECT ext_id FROM offers WHERE ext_id IS NOT NULL")}
     n = 0
     for r in json.loads(DUMP.read_text("utf-8")):

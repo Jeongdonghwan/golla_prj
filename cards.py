@@ -17,6 +17,7 @@ ROOT = Path(__file__).parent
 CARD_DIR = ROOT / "content" / "cards"
 MORE_DIR = ROOT / "content" / "cards_more"   # 카드 보강 문장(세션 작성). 카드 적재 때 card["more"] 로 합친다
 SEARCH_DIR = ROOT / "content" / "search"   # 실제 검색 키워드 페이지 문장(scripts/kw_research.py → 세션 작성). 카드 적재 때 card["search"] 로 합친다
+OWN_DIR = {13: "home"}   # 이 사이트들은 카드·보강·입력 파일을 하위 폴더에 둔다 — 네이버 사이트와 같은 이름 종류(냉장고 등)를 따로 쓰기 때문(2026-11-25)
 MODS = json.loads((ROOT / "data" / "modifiers.json").read_text("utf-8"))
 AXES = ("space", "persona", "situation", "feature", "price", "brand")
 NEED = {"summary": str, "hub_intro": list, "points": list, "first_sentences": list, "title_templates": list, "criteria": list,
@@ -60,6 +61,12 @@ def _texts(card):
                     walk(y)
     walk(card)
     return out
+
+
+def key(v):
+    """종류의 카드 파일 이름(확장자 없이): 보통 slug, OWN_DIR 사이트는 '<폴더>/slug'."""
+    d = OWN_DIR.get(v["site_id"])
+    return f"{d}/{v['slug']}" if d else v["slug"]
 
 
 def with_search(slug, card):

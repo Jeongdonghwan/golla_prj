@@ -83,9 +83,9 @@ def main():
             import json
             import cards
             for v in verts.values():
-                p = cards.CARD_DIR / f"{v['slug']}.json"
+                p = cards.CARD_DIR / f"{cards.key(v)}.json"
                 if p.exists():
-                    v["card"] = json.dumps(cards.with_search(v["slug"], json.loads(p.read_text("utf-8-sig"))), ensure_ascii=False)
+                    v["card"] = json.dumps(cards.with_search(cards.key(v), json.loads(p.read_text("utf-8-sig"))), ensure_ascii=False)
         moreless = collections.Counter()
         rows = q("SELECT * FROM keyword_combos WHERE status='published' AND page_type IN ('kind_mod','search','versus') ORDER BY id")
         conts = {r["combo_id"]: r for r in q("""SELECT pc.combo_id, pc.blocks, pc.model, pc.title FROM page_contents pc JOIN keyword_combos k

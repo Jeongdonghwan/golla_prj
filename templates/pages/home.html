@@ -5,9 +5,9 @@
 <p class="lead">{{ settings.home_lead or (site.group_name ~ " " ~ goods ~ "을 종류별로 나눠 고르는 기준, 방식 차이, 쓰는 공간에 따라 달라지는 점과 관리법을 정리했습니다.") }}</p>
 <p class="note">{{ disclose }} <a href="/광고고지/">광고 고지</a></p>
 {% if hubs %}<ul class="links">{% for h in hubs %}<li><a href="{{ h.url_path }}">{{ h.primary_keyword }}</a></li>{% endfor %}</ul>{% endif %}
-{% if kinds %}{% for sec, ks in kinds|groupby("section") %}<h2>{{ sec or "종류별 안내" }}</h2>
+{% if kinds %}{% for sec, ks in kinds|groupby("section") %}<h2 id="{{ sec|sec_id }}">{{ sec or "종류별 안내" }}</h2>
 <ul class="links">{% for k in ks %}<li><a href="{{ k.url_path }}">{{ k.primary_keyword }}</a></li>{% endfor %}</ul>{% endfor %}{% endif %}
-<h2>다른 상품군</h2>
-<ul class="links">{% for s in nav_sites if s.id != site.id %}<li><a href="https://{{ s.host }}/">{{ s.group_name }}</a></li>{% endfor %}</ul>
+{% if nav_sites|length > 1 %}<h2>다른 상품군</h2>
+<ul class="links">{% for s in nav_sites if s.id != site.id %}<li><a href="https://{{ s.host }}/">{{ s.group_name }}</a></li>{% endfor %}</ul>{% endif %}
 </div>
 {% endblock %}

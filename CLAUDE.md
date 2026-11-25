@@ -56,3 +56,9 @@
 - 고지 문구는 쿠팡 지정 문장("이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다.") — 위·아래에만. 본문에 '가전'·판매처 이름을 쓰지 않는다. 식품·건강식품·화장품·유아용품은 효능 단정 금지(prompts/card_coupang.md).
 - 종류 547개(data/coupang_kinds.json) 중 1차 74개 카드 작성. 나머지는 검색수 순(keywords/coupang_kind_volume.csv)으로 이어 쓴다.
 - 보강 2차(2026-11-24): 쿠팡 173종 `cards_more` + 전 종류 FAQ 답 보강(`cards_more.faqs`, composer.compose 끝에서 답 뒤에 붙임) + 같은 문장 30% 초과 9종 카드 항목 덧붙임. 측정(ray_check --files, 12개 사이트 18,464쪽): 본문 평균 1,982자(사이트별 1,915~2,030) · 1,800자 미만 6.2% · 같은 문장 쌍 평균 27.9% · 30% 초과 0종. 새 카드는 카드 + 보강(criteria·methods·care·mistakes·checks·axes·faqs)을 같이 쓴다(prompts/card_agent.md · cards_more.md · cards_more_faq.md). 푸시 전 `scripts/py310_check.py`(서버 3.10 문법) 필수.
+
+# home(가구·가전) 사이트 추가(2026-11-25, 사용자 결정)
+- 단가 높은 가구·큰 가전 전용 쿠팡 사이트 home.golrabom.kr(sites id 13, group 가구·가전, `goods=제품` 설정 — 화면 낱말 '용품' 대신 '제품'). 종류 55(가구 31·대형 가전 16·디지털·건강 8), data/coupang_kinds.json `home`(`"overlap": true`).
+- **네이버 사이트와 같은 이름 종류를 허용**(냉장고·세탁기·TV 등 15종 — 사용자가 성과 비교를 위해 겹쳐도 넣기로). 쿠팡 사이트끼리는 여전히 안 겹친다. 이름으로 종류를 찾는 코드는 네트워크로 범위를 나눴다(products.NAVER · coupang.load_dump 는 쿠팡 사이트만).
+- 카드·보강·입력 파일은 하위 폴더: `content/cards/home/`, `content/cards_more/home/`, `content/cards/_input/home/`(cards.key / OWN_DIR). 점검 `--only home/<slug>`. 쓰는 규칙 prompts/card_home.md — 겹치는 종류는 네이버 카드를 보지 않고 '들이는 법(치수·반입·설치·배송·조립·소재·효율 표기)' 관점으로 새로 쓴다.
+- 수집 `jobs coupang-collect --site home`. 서버: DNS A 레코드 home → `bash deploy/install.sh golrabom.kr` 다시 실행(13개).

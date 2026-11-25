@@ -5,7 +5,7 @@
 # 하는 일: 패키지 → 코드 → venv → .env → DB(덤프) → 서비스 → DNS 확인 → nginx+HTTPS → 첫 오픈(stage·plan·publish) → cron → SEO 대시보드 연결 → 점검
 set -euo pipefail
 D="${1:?사용법: THEN=하루공개수 bash <(curl ...) golrabom.kr [메일]}"; MAIL="${2:-}"
-SUBS="heat air clean kitchen beauty digital life salim baby style play office"; DIR=/var/www/shopa_prj; REPO="${REPO:-https://github.com/Jeongdonghwan/golla_prj.git}"
+SUBS="heat air clean kitchen beauty digital life salim baby style play office home"; DIR=/var/www/shopa_prj; REPO="${REPO:-https://github.com/Jeongdonghwan/golla_prj.git}"
 say() { printf '\n== %s\n' "$*"; }
 
 say "1/10 패키지"

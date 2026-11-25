@@ -187,6 +187,7 @@ ul.links a:hover{color:var(--accent)}
 .pl-desc{color:var(--muted);font-size:.92rem;line-height:1.55;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .pl-body time{color:var(--muted);font-size:.82rem;opacity:.8}
 .feat{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:36px;align-items:center;padding:28px 0;border-top:1px solid var(--line)}
+.kind-sec{margin:44px 0 0;padding-top:14px;border-top:2px solid var(--ink);font-size:1.3rem;scroll-margin-top:16px}.kind-sec+.feat{border-top:0}
 .feat:first-of-type{border-top:0;padding-top:0}
 .feat.flip .feat-img{order:2}
 .feat-img img{width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;border-radius:8px;display:block}

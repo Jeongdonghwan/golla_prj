@@ -59,7 +59,8 @@ def is_bot():
 def net(s):
     """사이트의 제휴 통로에 따른 낱말: 쿠팡 사이트(site_settings network=coupang) / 네이버 쇼핑 커넥트 사이트."""
     cp = s["id"] in dbq.coupang_ids()
-    return {"cp": cp, "shop": "쿠팡" if cp else "네이버 쇼핑", "goods": "용품" if cp else "가전",
+    goods = dbq.settings(s["id"]).get("goods") or ("용품" if cp else "가전")   # home(가구·가전)은 '제품'
+    return {"cp": cp, "shop": "쿠팡" if cp else "네이버 쇼핑", "goods": goods,
             "shop_link": "쿠팡 파트너스 제휴 링크" if cp else "네이버 쇼핑 제휴 링크",
             "disclose": "이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다." if cp
             else "이 글에는 네이버 쇼핑 제휴 링크가 있으며, 구매 시 수수료를 받을 수 있습니다."}
@@ -69,8 +70,10 @@ def net(s):
 def inject():
     s = site()
     n = net(s)
+    solo = dbq.solo_ids()   # 독립 홈페이지(home): 메뉴 = 자기 분야, 다른 사이트 메뉴에도 안 나온다
     return {"site": s, "settings": dbq.settings(s["id"]), "base_url": site_base(), "og_default": dbq.site_og(s["id"]),
-            "nav_sites": [x for x in dbq.sites() if (x["id"] in dbq.coupang_ids()) == n["cp"]], "static_pages": STATIC_PAGES, **n}
+            "nav_sites": [] if s["id"] in solo else [x for x in dbq.sites() if (x["id"] in dbq.coupang_ids()) == n["cp"] and x["id"] not in solo],
+            "nav_secs": dbq.sections(s["id"]) if s["id"] in solo else [], "static_pages": STATIC_PAGES, **n}
 
 
 @web_bp.before_app_request

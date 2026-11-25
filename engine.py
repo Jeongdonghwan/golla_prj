@@ -153,7 +153,9 @@ def assemble(site, combo):
         for k in dbq.published_with_text(site["id"], ("kind_hub",), 200):
             imgs = sorted((o for o in products.kind_offers(by_id[k["vertical_id"]]) if o["image"]), key=lambda o: -float(o["score"])) if k["vertical_id"] in by_id else []
             kinds.append({**k, "name": names.get(k["vertical_id"], k["primary_keyword"]), "image": imgs[0]["image"] if imgs else "",
-                          "topics": dbq.kind_core(k, 8)})
+                          "topics": dbq.kind_core(k, 8), "section": (by_id.get(k["vertical_id"]) or {}).get("section") or "", "vid": k["vertical_id"]})
+        if site["id"] in dbq.solo_ids():   # 독립 홈페이지: 분야 순서(종류 행 순서)대로 묶어 한 페이지로
+            kinds.sort(key=lambda k: k["vid"])
         posts = dbq.published_rec(site["id"], 12)  # 판매 의도 페이지(A등급 키워드 페이지, 종류마다 하나씩)
         for p in posts:
             p["label"] = names.get(p["vertical_id"], "") + " 추천"

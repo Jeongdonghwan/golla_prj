@@ -1,3 +1,4 @@
+import json
 import re
 from . import ex, q, q1
 
@@ -36,6 +37,19 @@ def sections(site_id):
 
 def sec_id(name):
     return "k-" + re.sub(r"[^0-9a-z가-힣]+", "-", (name or "").lower()).strip("-")
+
+
+def themes(site_id):
+    """독립 사이트의 상황별 모음(site_settings themes, coupang_kinds.json 의 themes) — [{slug, term, menu, h1, desc, intro}]."""
+    return json.loads(settings(site_id).get("themes") or "[]")
+
+
+def theme_combos(site_id, term):
+    """조건 하나만 붙은 키워드 페이지(예: '신혼부부 침대')를 종류 순서(분야 순)대로."""
+    return q("""SELECT k.*, v.section, v.name kind FROM keyword_combos k JOIN verticals v ON v.id=k.vertical_id
+                JOIN keyword_terms t ON t.id=k.mod1_id
+                WHERE k.site_id=%s AND k.status='published' AND k.page_type='kind_mod' AND k.mod2_id IS NULL AND t.term=%s
+                ORDER BY v.id""", (site_id, term))
 
 
 def kind_hubs(site_id):

@@ -20,8 +20,15 @@ def anchor_variants(combo_ids):
     return out
 
 
-def default_author():
-    return q1("SELECT * FROM authors ORDER BY id LIMIT 1")
+def default_author(site=None):
+    return for_site(q1("SELECT * FROM authors ORDER BY id LIMIT 1"), site)
+
+
+def for_site(author, site):
+    """이름이 골라봄이 아닌 독립 사이트(home '살림9단의 가구가전 핫템')는 작성자도 그 사이트 이름 편집팀으로 보인다."""
+    if author and site and site["name"] != "골라봄":
+        return {**author, "name": f"{site['name']} 편집팀", "role": f"{site['group_name']} 종류별 고르는 기준 정리"}
+    return author
 
 
 def author(slug):

@@ -62,3 +62,6 @@
 - **네이버 사이트와 같은 이름 종류를 허용**(냉장고·세탁기·TV 등 15종 — 사용자가 성과 비교를 위해 겹쳐도 넣기로). 쿠팡 사이트끼리는 여전히 안 겹친다. 이름으로 종류를 찾는 코드는 네트워크로 범위를 나눴다(products.NAVER · coupang.load_dump 는 쿠팡 사이트만).
 - 카드·보강·입력 파일은 하위 폴더: `content/cards/home/`, `content/cards_more/home/`, `content/cards/_input/home/`(cards.key / OWN_DIR). 점검 `--only home/<slug>`. 쓰는 규칙 prompts/card_home.md — 겹치는 종류는 네이버 카드를 보지 않고 '들이는 법(치수·반입·설치·배송·조립·소재·효율 표기)' 관점으로 새로 쓴다.
 - 수집 `jobs coupang-collect --site home`. 서버: DNS A 레코드 home → `bash deploy/install.sh golrabom.kr` 다시 실행(13개).
+- (2026-11-25 추가) home 이름 = **살림9단의 가구가전 핫템**(sites.name — 로고·title·og:site_name·작성자 '○○ 편집팀'이 따라 바뀜, db/ops.for_site). 다른 쿠팡 사이트 메뉴에 안 나오는 독립 홈페이지(solo).
+- 상황별 모음(home `themes`): `/신혼가구/`(신혼부부) · `/1인-가구/` · `/원룸/` · `/투룸/` — 분야별로 종류마다 '조건 + 종류' 글 링크 + 그 조건에 맞춘 대표 상품 1개(templates/pages/theme.html, web._theme). 종류 5개 이상 모여야 열리고 메뉴에 붙는다. 사이트맵 core 에 포함. '투룸'은 새 공간 수식어(카드 mods.space 에 문단이 있어야 페이지가 생긴다).
+- 조건별 상품 조합(전 사이트): data/modifiers.json 의 `hint`(공간·대상·상황마다 상품명 낱말) — 그 낱말이 상품명 낱말 앞부분에 든 상품을 페이지 앞에 올리고 '이 조건과 맞는 점'에 보인다(engine.HINTS·hint_in). 상품 설명은 특징 문단이 없으면 상품명에 든 방식 이름(양문형·벽걸이 등, 종류 이름에 든 낱말 제외)의 장점·맞는 경우로 보충(engine._method_in). 브랜드 태그 '@' 표시 버그 수정.

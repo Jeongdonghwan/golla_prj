@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{# 상황별 모음(독립 사이트 home, 2026-11-25): 제목 → 고지 → 소개 → 분야별로 종류마다 '조건 + 종류' 글 링크와 그 조건에 맞춘 대표 상품 하나 → 아래 고지.
+   상품 링크는 /go/ 경유 + sponsored. 가격·순위 숫자 없음. #}
+{% block jsonld %}
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
+  {"@type": "ListItem", "position": 1, "name": "홈", "item": base_url ~ "/"},
+  {"@type": "ListItem", "position": 2, "name": theme.menu, "item": canonical}]}|tojson }}</script>
+<script type="application/ld+json">{{ {"@context": "https://schema.org", "@type": "ItemList", "itemListElement": item_ld}|tojson }}</script>
+{% endblock %}
+{% block main %}
+<div class="hero"><div class="wrap wide hero-grid"><div class="hero-text">
+  <nav class="crumbs" aria-label="경로"><ol><li><a href="/">홈</a></li><li><span aria-current="page">{{ theme.menu }}</span></li></ol></nav>
+  <h1>{{ h1 }}</h1>
+  <div class="hero-foot"><span class="disclose">광고 · {{ disclose }}</span></div>
+  <div class="answer">{% for p in theme.intro %}<p>{{ p }}</p>{% endfor %}</div>
+</div></div></div>
+
+<div class="wrap wide"><article class="post theme">
+{% for sec, items in groups %}
+<section class="sec sec-offers" id="{{ sec|sec_id }}"><div class="sh sh-plain"><h2>{{ theme.menu }} · {{ sec or "종류별" }}</h2></div>
+<ol class="offers">
+{% for it in items %}{% set c, o = it.combo, it.offer %}
+  <li>
+    {% if o %}<a class="thumb" href="/go/{{ o.id }}?p={{ c.id }}&amp;s=theme" rel="sponsored nofollow noopener" target="_blank" tabindex="-1" aria-hidden="true">
+      {% if o.image %}<img src="{{ o.image }}" alt="{{ o.name }}" loading="lazy" decoding="async" referrerpolicy="no-referrer" width="300" height="300">
+      {% else %}<span class="ph"><b>{{ c.kind }}</b></span>{% endif %}</a>{% endif %}
+    <div class="body">
+      <p class="store">{{ c.kind }}</p>
+      <h3><a href="{{ c.url_path }}">{{ c.primary_keyword }} 고르는 법</a></h3>
+      {% if o %}<p class="pname"><a class="go" href="/go/{{ o.id }}?p={{ c.id }}&amp;s=theme" rel="sponsored nofollow noopener" target="_blank">{{ o.name }}</a></p>
+      {% if o.reason %}<p class="why"><span>이 조건과 맞는 점</span> <b>{{ o.reason }}</b></p>{% endif %}
+      {% if o.pick and o.pick.say %}<ul class="say">{% for t in o.pick.say %}<li>{{ t }}</li>{% endfor %}</ul>{% endif %}
+      <a class="btn" href="/go/{{ o.id }}?p={{ c.id }}&amp;s=theme" rel="sponsored nofollow noopener" target="_blank">{{ loop.cycle("오늘 가격 보기", "할인가 확인하기") }}</a>{% endif %}
+    </div>
+  </li>
+{% endfor %}
+</ol></section>
+{% endfor %}
+</article></div>
+
+<div class="wrap wide"><div class="disclose foot-note">상품 링크는 {{ shop_link }}(광고)입니다. 가격·할인·재고·배송은 판매처에서 확인하세요. <a href="/광고고지/">광고 고지</a> · <a href="/편집기준/">편집 기준</a></div></div>
+{% endblock %}

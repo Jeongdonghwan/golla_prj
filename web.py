@@ -73,7 +73,9 @@ def inject():
     solo = dbq.solo_ids()   # 독립 홈페이지(home): 메뉴 = 자기 분야, 다른 사이트 메뉴에도 안 나온다
     return {"site": s, "settings": dbq.settings(s["id"]), "base_url": site_base(), "og_default": dbq.site_og(s["id"]),
             "nav_sites": [] if s["id"] in solo else [x for x in dbq.sites() if (x["id"] in dbq.coupang_ids()) == n["cp"] and x["id"] not in solo],
-            "nav_secs": dbq.sections(s["id"]) if s["id"] in solo else [], "static_pages": STATIC_PAGES, **n}
+            "nav_secs": ([(t["menu"], f"/{t['slug']}/") for t in dbq.themes(s["id"]) if len(dbq.theme_combos(s["id"], t["term"])) >= THEME_MIN]
+                         + [(name, f"/#{sid}") for name, sid in dbq.sections(s["id"])]) if s["id"] in solo else [],
+            "static_pages": STATIC_PAGES, **n}
 
 
 @web_bp.before_app_request
@@ -122,14 +124,41 @@ def _page(template, title, url, **ctx):
                            **{"description": STATIC_DESC.get(url, "{name} " + title + " 페이지입니다.").format(name=s["name"], **net(s)), **ctx})
 
 
+THEME_MIN = 5   # 모음 페이지에 종류가 이만큼 모여야 열고 메뉴에 단다
+
+
+def _theme(s, t):
+    """독립 사이트(home)의 상황별 모음: 분야별로 종류마다 '조건 + 종류' 페이지 링크 + 그 조건에 맞춘 대표 상품 하나(2026-11-25)."""
+    from engine import offer_pick, offer_reason, select_offers
+    groups = []
+    for c in dbq.theme_combos(s["id"], t["term"]):
+        v = dbq.vertical(c["vertical_id"])
+        card = js(v["card"], {})
+        o = (select_offers(s, c, "theme", 1, v) or [None])[0]
+        if o:
+            o = {**o, "kind": v["name"], "reason": offer_reason(o, c, card), "pick": offer_pick(o, c, card)}
+        if not groups or groups[-1][0] != (c["section"] or ""):
+            groups.append((c["section"] or "", []))
+        groups[-1][1].append({"combo": c, "offer": o})
+    if sum(len(x) for _g, x in groups) < THEME_MIN:
+        abort(404)
+    return render_template("pages/theme.html", title=f"{t['h1']}{s['title_sep']}{s['name']}" if len(t["h1"]) + len(s["name"]) < 37 else t["h1"],
+                           h1=t["h1"], canonical=abs_url(f"/{t['slug']}/"), description=t["desc"], theme=t, groups=groups,
+                           item_ld=[{"@type": "ListItem", "position": i, "name": it["combo"]["primary_keyword"], "url": abs_url(it["combo"]["url_path"])}
+                                    for i, it in enumerate((it for _g, x in groups for it in x), 1)])
+
+
 def _special(s, url):
-    """콤보가 아닌 공개 페이지: 정적, 작성자, HTML 사이트맵."""
+    """콤보가 아닌 공개 페이지: 정적, 작성자, HTML 사이트맵, 상황별 모음(독립 사이트)."""
+    for t in dbq.themes(s["id"]):
+        if url == f"/{t['slug']}/":
+            return _theme(s, t)
     if url in STATIC_PAGES:
         tpl, title = STATIC_PAGES[url]
         return _page(f"static/{tpl}.html", title, url)
     m = re.fullmatch(r"/작성자/([^/]+)/", url)
     if m:
-        author = ops.author(m.group(1)) or abort(404)
+        author = ops.for_site(ops.author(m.group(1)), s) or abort(404)
         return _page("pages/author.html", author["name"], url, author=author)
     if url == "/사이트맵/":
         return _page("pages/html_sitemap.html", "사이트맵", url, hubs=dbq.published(s["id"], SITEMAP_TYPES["hub"]),

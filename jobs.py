@@ -277,7 +277,7 @@ def export_sitemaps(out, only, chunk):
         for old in d.glob("sitemap*.xml"):
             old.unlink()
         rows = dbq.published(site["id"], None, 10_000_000)
-        core = list({r["url_path"]: r for r in [{"url_path": p} for p in ["/", *STATIC_PATHS, "/사이트맵/"]]
+        core = list({r["url_path"]: r for r in [{"url_path": p} for p in ["/", *STATIC_PATHS, "/사이트맵/", *(f"/{t['slug']}/" for t in dbq.themes(site["id"]))]]
                      + [r for r in rows if r["page_type"] in HUBS + ("group_hub",)]}.values())
         posts = [r for r in rows if r["page_type"] == "question"]
         kw = [r for r in rows if r["page_type"] not in HUBS + ("group_hub", "question")]

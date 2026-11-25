@@ -20,6 +20,9 @@ FORBIDDEN = [w for w in (Path(__file__).parent / "lint" / "forbidden.txt").read_
 # 가격·평점·리뷰 수를 숫자로 쓰지 않는다(가격대 수식어 '3만 원 이하'·'2만 원대'는 허용)
 NUMBER_RE = re.compile(r"\d{1,3}(?:,\d{3})+\s*원|\d+\s*원(?!대| 이하| 이상| 안팎)|평점\s*\d|별점\s*\d|리뷰\s*[\d,]+\s*(?:개|건)|\d+\s*% 할인|할인율\s*\d")
 HUB_TYPES = ("group_hub", "kind_hub")
+# 조건 수식어(공간·대상·상황) → 상품명에서 볼 낱말. 같은 종류라도 조건마다 상품 조합이 달라진다(2026-11-25 사용자 요청)
+HINTS = {x["term"]: x["hint"] for ax in ("space", "persona", "situation")
+         for x in json.loads((Path(__file__).parent / "data" / "modifiers.json").read_text("utf-8"))[ax] if x.get("hint")}
 
 
 def lint_text(text, extra=()):
@@ -43,6 +46,17 @@ def abs_url(path):
 
 
 # ── 상품 선택 ─────────────────────────────────────────────────────────────
+def combo_hints(combo):
+    """페이지 수식어 중 공간·대상·상황 → 상품명 낱말(HINTS)."""
+    ids = [combo.get(k) for k in ("mod1_id", "mod2_id", "mod3_id") if combo.get(k)]
+    return [w for t in map(dbq.term, ids) if t for w in HINTS.get(t["term"], [])]
+
+
+def hint_in(word, name):
+    """조건 낱말이 상품명 낱말의 앞부분에 있는가('킹' → '킹사이즈'는 맞고 '베이킹'은 아님)."""
+    return any(tok.startswith(word) for tok in re.split(r"[\s,()\[\]/+·]+", name))
+
+
 def combo_tags(combo):
     """페이지 수식어 중 상품 태그와 이어진 것(특징·가격대·브랜드)."""
     ids = [combo.get(k) for k in ("mod1_id", "mod2_id", "mod3_id") if combo.get(k)]
@@ -50,7 +64,7 @@ def combo_tags(combo):
 
 
 def select_offers(site, combo, slot, n, vertical=None):
-    """(1) 같은 종류(+하위) (2) 페이지 특징 태그와 맞는 상품 먼저 (3) 점수 가중 셔플(페이지 시드) (4) 모자라면 같은 상품군 형제 종류로 채움."""
+    """(1) 같은 종류(+하위) (2) 페이지 특징 태그와 맞는 상품 먼저 (2-1) 조건 낱말(HINTS)이 상품명에 든 상품 (3) 점수 가중 셔플(페이지 시드) (4) 모자라면 같은 상품군 형제 종류로 채움."""
     vertical = vertical or dbq.vertical(combo["vertical_id"])
     tags = set(combo_tags(combo))
     rng = random.Random(hashlib.sha256(f"{site['id']}|{combo['id']}|{slot}|{site['ranking_version']}".encode()).hexdigest())
@@ -68,7 +82,10 @@ def select_offers(site, combo, slot, n, vertical=None):
         words = {w for w in re.split(r"[\s·]+", combo["primary_keyword"].replace(vertical["name"], "")) if len(w) >= 2 and w != "차이"}
         match = [o for o in cands if any(w in o["name"] for w in words)]
     seen = {o["id"] for o in match}
-    out = ranked(match) + ranked([o for o in cands if o["id"] not in seen])
+    hints = combo_hints(combo)   # 조건 낱말이 상품명에 든 상품을 그다음에(원룸 → 슬림·미니·싱글, 신혼부부 → 퀸·킹·세트)
+    near = [o for o in cands if o["id"] not in seen and any(hint_in(w, o["name"]) for w in hints)] if hints else []
+    seen |= {o["id"] for o in near}
+    out = ranked(match) + ranked(near) + ranked([o for o in cands if o["id"] not in seen])
     if len(out) < n:  # 모자라면 같은 상품군의 형제 종류(같은 부모)로 채운다 — 빈 페이지 없음
         root = vertical["parent_id"] or vertical["id"]
         sib = [v for v in dbq.verticals(site["id"]) if v["id"] != vertical["id"] and (v["parent_id"] or v["id"]) == root and not v["parent_id"]]
@@ -89,17 +106,34 @@ def offer_pick(offer, combo, card):
     say = [rng.choice(mods["feature"][f]) for f in feats[:2]]
     if brand:
         say.append(rng.choice(mods["brand"][brand]))
+    if len(say) < 2 and card:   # 특징 문단이 없는 상품: 상품명에 방식 이름(양문형·접이식 등)이 있으면 그 방식의 장점·맞는 경우(2026-11-25)
+        name = offer["name"].replace(" ", "")
+        for m in card.get("methods", []):
+            if len(say) < 2 and _method_in(m["name"], name, card.get("kind", "")):
+                feats.append(m["name"])
+                say += [s for s in (m["pros"], m["fit"]) if s][:2 - len(say)]
     return {"feats": feats[:4], "say": say[:3]}
+
+
+def _method_in(method, name, kind=""):
+    """방식 이름(예: '양문형 냉장고', '통돌이(일반) 세탁기')의 핵심 낱말이 상품명에 있는가. 종류 이름에 든 낱말(바디로션의 '로션')은 뜻이 없어 뺀다."""
+    for w in re.split(r"[\s·/]+", re.sub(r"\(.*?\)", "", method))[:1] + re.split(r"·", method.split()[0])[1:2]:   # 첫 낱말(과 '소형·미니형'의 둘째)
+        w = w[:-1] if w.endswith("형") and len(w) > 2 else w   # '양문형' → '양문', '스탠드형' → '스탠드'
+        if len(w) >= 2 and w in name and w not in kind.replace(" ", ""):
+            return True
+    return False
 
 
 def offer_reason(offer, combo, card=None):
     """상품 카드의 '이 조건과 맞는 점': ① 상품 태그 중 페이지 조건과 겹치는 것 → ② 없으면 상품명에 그대로 적힌
     카드 특징·기준 낱말(사실 — 상품명에 있는 말만). 둘 다 없으면 빈 값(2026-11-24: 쿠팡 상품 대부분이 비어 보완)."""
-    hit = [t for t in combo_tags(combo) if t in js(offer["tags"], [])]
+    name = offer["name"].replace(" ", "")
+    hit = [t.lstrip("@") for t in combo_tags(combo) if t in js(offer["tags"], [])] + [w for w in dict.fromkeys(combo_hints(combo)) if hint_in(w, offer["name"])]   # 조건 낱말(원룸 → 슬림 등)이 상품명에 있으면 그것부터. 브랜드 태그 '@삼성' → '삼성'
+    hit = list(dict.fromkeys(hit))[:3]
     if not hit and card:
-        name = offer["name"].replace(" ", "")
         words = list((card.get("mods", {}).get("feature") or {})) + [c["item"] for c in card.get("criteria", [])]
         hit = [w for w in dict.fromkeys(words) if len(w) >= 2 and w.replace(" ", "") in name]
+        hit += [m["name"] for m in card.get("methods", []) if _method_in(m["name"], name, card.get("kind", ""))]   # 방식(양문형 등)
         hit = [w for w in hit if not any(w != x and w in x for x in hit)][:3]   # '용량'·'대용량' 이면 긴 쪽만
     return " · ".join(hit)
 
@@ -161,7 +195,7 @@ def assemble(site, combo):
             p["label"] = names.get(p["vertical_id"], "") + " 추천"
     ctx = {"combo": combo, "content": content, "page": built, "blocks": built["sections"], "vertical": vertical, "kinds": kinds, "posts": posts,
            "offers_main": offers, "links": _links(combo), "crumbs": _crumbs(combo),
-           "author": ops.default_author(), "og_image": card_path(combo), "faqs": built["faqs"],
+           "author": ops.default_author(site), "og_image": card_path(combo), "faqs": built["faqs"],
            "canonical": abs_url(combo["url_path"]), "title": built["title"], "description": built["meta"]}
     ctx["robots"] = "noindex,follow" if combo["status"] == "noindex" or not offers else None
     return ctx

@@ -11,7 +11,7 @@
 {% endblock %}
 {% block main %}
 {% set is_group = combo.page_type == "group_hub" %}
-{% set lead = (offers_main | selectattr("image") | first) if not is_group else none %}
+{% set lead = (offers_main | selectattr("image") | first) if not is_group and not page.ray else none %}{# 키워드 페이지는 대표 사진 없음 — 바로 아래 01번 상품과 같고 PC 머리가 길어진다(2026-11-25) #}
 <div class="hero{% if is_group %} hero-home{% endif %}{% if page.ray %} hero-ray{% endif %}"><div class="wrap wide hero-grid{% if lead %} has-lead{% endif %}">
   <div class="hero-text">
     {% if not is_group %}<nav class="crumbs" aria-label="경로"><ol>{% for c in crumbs %}<li>{% if not loop.last %}<a href="{{ c.path }}">{{ c.name }}</a>{% else %}<span aria-current="page">{{ c.name }}</span>{% endif %}</li>{% endfor %}</ol></nav>

@@ -74,11 +74,17 @@ def main():
     out = ROOT / "keywords"
     out.mkdir(exist_ok=True)
     with create_app().app_context():
-        kinds = db.q("SELECT id, name, slug FROM verticals WHERE is_active=1 AND card IS NOT NULL ORDER BY id")
+        import cards as cardmod
+        kinds = db.q("SELECT id, site_id, name, slug FROM verticals WHERE is_active=1 AND card IS NOT NULL ORDER BY id")
+        vol_path = out / "volumes.json"   # 받은 검색어 전부의 월 검색수(정규화 키) — 기존 페이지 검색량 채우기·후보 목록에 쓴다(2026-11-25)
+        volumes = json.loads(vol_path.read_text("utf-8")) if vol_path.exists() else {}
+        done_path = out / "volumes_done.json"   # 끊겨도 이어서: 끝난 종류 키
+        done = set(json.loads(done_path.read_text("utf-8"))) if done_path.exists() and "--resume" in args else set()
         have = {norm(r["primary_keyword"]) for r in db.q("SELECT primary_keyword FROM keyword_combos")}
         total = Counter()
         for k in kinds:
-            if only and k["name"] not in only:
+            fkey = cardmod.key(k)   # home 은 'home/냉장고' — 네이버 냉장고와 파일이 겹치지 않게
+            if only and k["name"] not in only or fkey in done:
                 continue
             brands = [r["brand"] for r in db.q("SELECT brand, COUNT(*) n FROM offers WHERE status='active' AND vertical_id=%s AND brand IS NOT NULL "
                                                   "GROUP BY brand ORDER BY n DESC LIMIT 12", (k["id"],))]
@@ -86,7 +92,7 @@ def main():
             vocab = {norm(t) for ax in card.get("mods", {}).values() for t in ax}
             names = norm(" ".join(r["name"] for r in db.q("SELECT name FROM offers WHERE status='active' AND vertical_id=%s", (k["id"],))))
             rows = {}
-            pool = out / f"pool_{k['slug']}.csv"
+            pool = out / f"pool_{fkey.replace('/', '__')}.csv"
             seeds = [[k["name"]], [f"{b} {k['name']}" for b in brands[:4]]]
             if "--deep" in args:  # 카드의 모든 수식어·방식·브랜드를 힌트로(5개씩) + 기존 풀과 합침
                 from keywords import method_label
@@ -103,7 +109,12 @@ def main():
                         rows[kw] = max(vol, rows.get(kw, 0))
                 except Exception as e:  # 한 종류 실패는 건너뛴다
                     print(f"  {k['name']} 실패: {e}")
-                time.sleep(1)
+                time.sleep(0.6)
+            for kw, vol in rows.items():
+                volumes[norm(kw)] = max(vol, volumes.get(norm(kw), 0))
+            done.add(fkey)
+            vol_path.write_text(json.dumps(volumes, ensure_ascii=False), "utf-8")
+            done_path.write_text(json.dumps(sorted(done), ensure_ascii=False), "utf-8")
             kn = norm(k["name"])
             keep = sorted(((kw, v) for kw, v in rows.items() if v >= vmin and kn in norm(kw) and norm(kw) not in have), key=lambda x: -x[1])
             c = Counter()

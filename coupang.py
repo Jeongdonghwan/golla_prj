@@ -69,6 +69,9 @@ def sync_kinds(domain="golrabom.kr"):
             for k, v in (("theme", json.dumps({"accent": s["accent"]})), ("network", "coupang")) + tuple((x, "1" if s[x] is True else s[x]) for x in ("goods", "solo") if s.get(x)):
                 ex("INSERT INTO site_settings (site_id, `key`, `value`) VALUES (%s,%s,%s)", (s["id"], k, v))
         ex("UPDATE sites SET name=%s WHERE id=%s", (s.get("name", "골라봄"), s["id"]))
+        for k, v in (s.get("brand") or {}).items():   # 로고 글자·아이콘(home: 살림9단 / 가구가전 핫템 / 집 아이콘)
+            ex("DELETE FROM site_settings WHERE site_id=%s AND `key`=%s", (s["id"], "brand_" + k))
+            ex("INSERT INTO site_settings (site_id, `key`, `value`) VALUES (%s,%s,%s)", (s["id"], "brand_" + k, v))
         if s.get("themes"):   # 상황별 모음(home: 신혼가구·1인 가구·원룸·투룸)
             ex("DELETE FROM site_settings WHERE site_id=%s AND `key`='themes'", (s["id"],))
             ex("INSERT INTO site_settings (site_id, `key`, `value`) VALUES (%s,'themes',%s)", (s["id"], json.dumps(s["themes"], ensure_ascii=False)))   # 독립 이름(home = 살림9단의 가구가전 핫템, 2026-11-25)

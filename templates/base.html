@@ -31,7 +31,8 @@
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <a class="brand" href="/">{{ site.name }}</a>
+  {% set bm, bs = settings.brand_main or site.name, settings.brand_sub or (site.group_name ~ " " ~ goods) %}
+  <a class="brand" href="/" aria-label="{{ site.name }} 처음으로"><span class="mark" aria-hidden="true">{% if settings.brand_mark == "house" %}<svg viewBox="0 0 24 24"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg>{% else %}<svg viewBox="0 0 24 24"><path d="m6 12.5 4 4 8-9"/></svg>{% endif %}</span><span class="bt"><b>{{ bm }}</b><small>{{ bs }}</small></span></a>
   <nav aria-label="주 메뉴">
   {% for s in nav_sites %}<a href="https://{{ s.host }}/"{% if s.id == site.id %} aria-current="page"{% endif %}>{{ s.group_name }}</a>{% endfor %}
   {% for name, href in nav_secs %}<a href="{{ href }}"{% if href == request.path %} aria-current="page"{% endif %}>{{ name }}</a>{% endfor %}

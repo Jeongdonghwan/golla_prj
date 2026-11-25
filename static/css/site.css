@@ -46,7 +46,7 @@ h1{font-size:clamp(1.7rem,4.4vw,2.6rem);line-height:1.25;letter-spacing:-.04em;m
 .answer p:first-child{font-weight:600;font-size:1.15rem;line-height:1.6;padding-left:14px;border-left:3px solid var(--accent)}
 .pick{margin:0;background:var(--paper)}
 .pick a{display:block;position:relative;overflow:hidden;aspect-ratio:1}
-.pick img{width:100%;height:100%;object-fit:cover;transition:transform .8s var(--ease)}
+.pick img{width:100%;height:100%;object-fit:contain;background:#fff;transition:transform .8s var(--ease)}
 .pick a:hover img{transform:scale(1.04)}
 .pick figcaption{font-size:.86rem;line-height:1.5;padding:12px 14px 14px}
 .pick figcaption span{display:block;font-size:.76rem;color:var(--muted);margin-bottom:2px}
@@ -106,8 +106,8 @@ tbody tr{transition:background .25s}tbody tr:hover{background:var(--gray)}
 /* 추천 상품 목록: 번호 붙은 가로 행(사진 왼쪽 · 설명 오른쪽) */
 ol.offers{list-style:none;padding:0;margin:0;border-top:2px solid var(--ink)}
 ol.offers>li{display:grid;grid-template-columns:200px minmax(0,1fr);gap:22px;padding:22px 0;border-bottom:1px solid var(--line)}
-.thumb{display:block;position:relative;aspect-ratio:1;background:var(--gray);overflow:hidden;align-self:start}
-.thumb img{width:100%;height:100%;object-fit:cover;transition:transform .8s var(--ease)}
+.thumb{display:block;position:relative;aspect-ratio:1;background:#fff;border:1px solid var(--line);overflow:hidden;align-self:start}
+.thumb img{width:100%;height:100%;object-fit:contain;padding:6px;box-sizing:border-box;transition:transform .8s var(--ease)}   /* 상품 사진은 자르지 않고 전체가 보이게(2026-11-25) */
 ol.offers li:hover .thumb img{transform:scale(1.05)}
 .ad{margin-left:auto;border:1px solid var(--line);color:var(--muted);font-size:.68rem;font-weight:700;padding:1px 6px;letter-spacing:.04em}
 .ph{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;padding:14px;background:var(--gray-2)}
@@ -134,7 +134,7 @@ ul.say li::before{content:"";position:absolute;left:0;top:.7em;width:5px;height:
 ul.kinds{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 ul.kinds li:first-child{grid-column:span 2;grid-row:span 2}
 ul.kinds a{display:block;position:relative;aspect-ratio:1;overflow:hidden;background:var(--gray);text-decoration:none}
-ul.kinds img{width:100%;height:100%;object-fit:cover;transition:transform .8s var(--ease)}
+ul.kinds img{width:100%;height:100%;object-fit:contain;background:#fff;transition:transform .8s var(--ease)}
 ul.kinds a:hover img{transform:scale(1.05)}
 ul.kinds .kn{position:absolute;left:0;bottom:0;background:var(--ink);color:#fff;font-weight:700;font-size:.92rem;padding:6px 12px;transition:background .3s}
 ul.kinds a:hover .kn{background:var(--accent)}
@@ -194,7 +194,7 @@ ul.links a:hover{color:var(--accent)}
 .kind-sec{margin:44px 0 0;padding-top:14px;border-top:2px solid var(--ink);font-size:1.3rem;scroll-margin-top:16px}.kind-sec+.feat{border-top:0}
 .feat:first-of-type{border-top:0;padding-top:0}
 .feat.flip .feat-img{order:2}
-.feat-img img{width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;border-radius:8px;display:block}
+.feat-img img{width:100%;height:auto;aspect-ratio:16/10;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:8px;display:block}
 .feat-body h3{font-size:1.4rem;letter-spacing:-.03em;margin:0 0 10px;line-height:1.35}
 .feat-body h3 a{color:var(--ink);text-decoration:none}
 .feat-body p{color:var(--muted);margin:0 0 14px}
@@ -240,7 +240,7 @@ h1 .hero-sub{margin-top:.55em;padding-left:.7em;border-left:3px solid var(--acce
   .toc details>summary::after{content:"+";font-weight:400;color:var(--muted)}.toc details[open]>summary::after{content:"−"}.toc details[open]>summary{margin-bottom:8px}}
 @media(max-width:860px){.hero-ray .kicker{display:none}.hero-ray .pick{display:none}.hero-ray{padding:16px 0 20px}.hero-ray h1{margin-bottom:12px}.hero-ray .lead{margin-top:12px;font-size:1rem}
   .layout{padding-top:18px}.sumbox dl{grid-template-columns:1fr 1fr;gap:0 16px}}
-@media(max-width:700px){ol.offers>li{grid-template-columns:96px minmax(0,1fr);gap:12px;padding:14px 0}.btn{padding:8px;font-size:.84rem}}
+@media(max-width:700px){ol.offers>li{grid-template-columns:128px minmax(0,1fr);gap:12px;padding:14px 0}.btn{padding:8px;font-size:.84rem}}
 @media(max-width:1000px){.toc details>summary{justify-content:flex-start}.toc details>summary span{margin-left:6px}.toc details>summary::after{margin-left:auto}}
 /* 첫 화면 후킹(2026-11-24): 제목 아래 이 페이지의 조건·볼 기준 + 상품 바로 가기, 상품마다 맞는 점 굵게 */
 .hero-hook{margin:14px 0 0;display:flex;flex-direction:column;gap:2px;font-size:.92rem;line-height:1.55}

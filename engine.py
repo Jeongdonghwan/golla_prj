@@ -111,7 +111,11 @@ def offer_pick(offer, combo, card):
         for m in card.get("methods", []):
             if len(say) < 2 and _method_in(m["name"], name, card.get("kind", "")):
                 feats.append(m["name"])
-                say += [s for s in (m["pros"], m["fit"]) if s][:2 - len(say)]
+                fit = m.get("fit", "").rstrip(". ")
+                say += [x for x in (m["pros"], f"{fit}에 잘 맞아요." if fit else "") if x][:2 - len(say)]   # fit 은 명사구('…집') → 문장으로 끝맺는다
+    if not say and card and card.get("criteria"):   # 그래도 없으면: 그 종류 고르는 기준 하나(상품마다 시드로 다르게) — 빈 카드 없이
+        c = rng.choice(card["criteria"])
+        say = [f"{c['item']} — {c['check']}", c["why"]]
     return {"feats": feats[:4], "say": say[:3]}
 
 

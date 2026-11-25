@@ -30,8 +30,11 @@ DBPW=$(grep '^DB_PASSWORD=' .env | cut -d= -f2-)
 echo OK
 
 say "4/10 DB"
+if mysql -u shopa_prj "-p$DBPW" shopa_prj -e "SELECT 1" >/dev/null 2>&1; then echo "DB·계정 있음 — root 단계 건너뜀"   # 다시 실행할 때 root 비밀번호를 묻지 않는다(2026-11-25 — 백그라운드 실행에서 입력을 못 받아 멈췄다)
+else
 if mysql -e "SELECT 1" >/dev/null 2>&1; then ROOT=(mysql); else echo "MariaDB root 비밀번호:"; read -rs RPW; ROOT=(mysql -u root "-p$RPW"); fi
 "${ROOT[@]}" -e "CREATE DATABASE IF NOT EXISTS shopa_prj DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS 'shopa_prj'@'localhost'; ALTER USER 'shopa_prj'@'localhost' IDENTIFIED BY '$DBPW'; GRANT ALL PRIVILEGES ON shopa_prj.* TO 'shopa_prj'@'localhost'; FLUSH PRIVILEGES;"
+fi
 M=(mysql -u shopa_prj "-p$DBPW" shopa_prj)
 if ! "${M[@]}" -e "SELECT 1 FROM keyword_combos LIMIT 1" >/dev/null 2>&1; then
   echo "덤프 적재 중…"; gunzip -c deploy/shopa_prj.sql.gz | "${M[@]}"
